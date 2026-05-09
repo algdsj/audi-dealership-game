@@ -23,152 +23,6 @@ const callAI = async (prompt) => {
   }
 };
 
-const Tooltip = ({ text, children }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <span
-      className="relative inline-flex items-center gap-1 group align-middle"
-      onClick={() => setOpen(prev => !prev)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">{children}</span>
-      <span aria-hidden="true" className={(open ? 'opacity-100 visible' : 'opacity-0 invisible') + ' pointer-events-none group-hover:opacity-100 group-hover:visible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-3 text-xs font-medium leading-relaxed text-slate-600 shadow-xl transition-all'}>
-        {text}
-      </span>
-    </span>
-  );
-};
-
-const TERM_HELP = {
-  DCC: 'Digital Call Center，电话/线上线索邀约团队。负责把线索筛选、跟进并邀约到店，影响到店批次。',
-  CSI: '客户满意度指数，满分100。会影响成交转化、转介绍、厂家返利和投诉风险。',
-  ROA: '资产回报率，衡量投入资产创造净利润的效率。库存周转慢会拖低这个指标。',
-  GP1: '新车进销差，即真实卖车收入减新车成本。',
-  GP2: 'GP1叠加厂家返利后的新车经营毛利。',
-  GP3: '全业务综合毛利，包含新车、返利、金融、精品、延保、二手车、售后等利润。',
-  OPEX: '经营费用总计，包含租金、折旧、人工、营销、仓储、财务费用等。',
-  授信: '银行或合作方给出的最高可用融资额度，不等于现金；使用后会占用额度并形成负债或票据风险。',
-  库存融资: '用银行库存融资支付厂家订车款。会增加银行负债，车辆销售回款会优先归还这笔融资。',
-  库存融资授信: '专门用于车辆库存融资的额度，显示在顶部负债/授信区域，和承兑汇票专项额度分开。',
-  承兑汇票: '银行承兑汇票订车方式，先付保证金和手续费，尾款到期兑付；逾期会伤害银行信用。',
-  承兑汇票专项授信: '只能用于3个月/6个月汇票订车的专项额度，和顶部库存融资授信不是同一笔额度。',
-  银行信用: '银行对店端履约能力的评分。汇票逾期会下降，按时兑付会恢复，过低时会被暂停开票。',
-  返利池: '本月已进入厂家返利计算的潜在金额，月底会按销量达成、过程指标和CSI折算实发。',
-  返利系数: '厂家根据经营质量给出的返利倍率。高达成和高CSI会提高，经营差或价格战会压低。',
-  厂家任务: '厂家要求本月完成的新车销量目标，是返利考核的核心依据。',
-  虚出: '月底冲量的账面出库操作，不产生真实客户回款，会留下浮库和稽核风险。',
-  浮库: '虚出后未被真实客户消化的车辆。占用资金并产生额外成本，风险高。',
-  库龄: '车辆入库后的停留天数。库龄越长，仓储成本、资金占用和降价压力越大。',
-  库存周转: '库存转成销量和现金的速度。周转越快，资金压力越低，投资人评分通常越好。',
-  线索: '潜在购车客户。需要DCC或销售跟进，才可能转化为到店和成交。',
-  邀约到店率: 'DCC处理线索后成功邀约到店的比例。',
-  销售转化率: '到店客户最终成交的比例，受定价、库存、销售能力、CSI和竞品价格影响。',
-  转介绍: '满意客户带来的新线索，通常获客成本低、信任度高。',
-  置换: '客户用旧车抵扣购车款或卖给门店，可能带来二手车库存和厂家置换补贴。',
-  衍生业务: '新车之外的利润来源，包括金融、保险、精品、延保、二手车和售后。',
-  金融佣金: '客户办理按揭等金融方案时，合作金融机构给门店的佣金。',
-  精品: '随车装潢、附件和精品套餐，是4S店常见高毛利项目。',
-  延保: '延长保修服务。原厂延保更易被客户接受，第三方延保毛利更高但转化更难。',
-  续保: '车辆保险到期后的续保业务，会带来佣金收入。',
-  二网批售: '把车辆批发给二级经销商。回款快但价格通常低于零售。',
-  展厅展位: '可展示车辆的展位数量。展车能提高对应车型转化率和自然客流。',
-  仓储区: '非展厅库存停放区。容量决定可囤车上限，仓储车辆每天产生成本。',
-  在途: '已向厂家下单但尚未到库的车辆，占用未来库位。',
-  垫资: '总经理用个人账户临时借钱给公司救急，现金安全后会自动归还。',
-  GM士气: '总经理个人状态指标。工资、垫资压力和风险事件会影响士气。',
-  投资人信任: '投资人对你经营能力的信任度，影响授权、谈判和月底评价。',
-  现金覆盖: '现有现金可以支撑日常固定支出的天数，越低越容易触发经营风险。',
-  资产负债率: '负债占资产的比例，用来判断经营杠杆和偿债压力。',
-  市场份额: '本店及竞品在本地市场销量中的占比。',
-  本品店: '同品牌其他授权店，会和你竞争客户，也可能在价格战中形成协同或冲突。',
-  价格指数: '竞品相对市场均价的价格水平。低于1代表更便宜，对你形成截流压力。',
-  季节需求: '季节对本地购车需求的放大或压缩倍率。',
-  竞品威胁: '综合竞品价格、活动和截流能力后的风险评分。',
-  月结: '每月结束时统一结算返利、汇票风险、投资人评分、授信变化和下月政策。',
-};
-
-const Term = ({ term, children }) => (
-  <Tooltip text={TERM_HELP[term] || term}>{children || term}</Tooltip>
-);
-
-const MiniTrendChart = ({ values = [], color = '#2563eb', formatValue = value => value }) => {
-  if (values.length === 0) return <div className="h-16 rounded-lg bg-slate-50"></div>;
-  const minValue = Math.min(...values, 0);
-  const maxValue = Math.max(...values, 1);
-  const range = Math.max(1, maxValue - minValue);
-  const points = values.map((value, index) => {
-    const x = values.length === 1 ? 50 : (index / (values.length - 1)) * 100;
-    const y = 58 - ((value - minValue) / range) * 48;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  return (
-    <div>
-      <svg viewBox="0 0 100 64" className="h-16 w-full overflow-visible">
-        <line x1="0" y1="58" x2="100" y2="58" stroke="#e2e8f0" strokeWidth="1" />
-        <polyline points={points} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        {values.map((value, index) => {
-          const x = values.length === 1 ? 50 : (index / (values.length - 1)) * 100;
-          const y = 58 - ((value - minValue) / range) * 48;
-          return <circle key={index} cx={x} cy={y} r="2.6" fill="white" stroke={color} strokeWidth="2" />;
-        })}
-      </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-slate-400">
-        <span>{formatValue(values[0])}</span>
-        <span>{formatValue(values[values.length - 1])}</span>
-      </div>
-    </div>
-  );
-};
-
-const MARKET_SHARE_KEYS = ['audi', 'bmw', 'benz', 'ev', 'audiLocal'];
-const normalizeMarketShare = (share = {}) => {
-  const normalized = {};
-  const knownTotal = MARKET_SHARE_KEYS.reduce((sum, key) => sum + Math.max(0, Number(share[key]) || 0), 0);
-  const scale = knownTotal > 100 ? 100 / knownTotal : 1;
-  MARKET_SHARE_KEYS.forEach(key => {
-    normalized[key] = Math.round(Math.max(0, Number(share[key]) || 0) * scale * 10) / 10;
-  });
-  const knownRoundedTotal = MARKET_SHARE_KEYS.reduce((sum, key) => sum + normalized[key], 0);
-  normalized.other = Math.max(0, Math.round((100 - knownRoundedTotal) * 10) / 10);
-  const finalTotal = [...MARKET_SHARE_KEYS, 'other'].reduce((sum, key) => sum + normalized[key], 0);
-  if (finalTotal !== 100) normalized.other = Math.round((normalized.other + (100 - finalTotal)) * 10) / 10;
-  return normalized;
-};
-
-const MarketSharePie = ({ items = [] }) => {
-  const segments = items.reduce((acc, item) => {
-    const value = Math.max(0, Number(item.value) || 0);
-    return {
-      total: acc.total + value,
-      items: [...acc.items, { ...item, value, offset: acc.total }],
-    };
-  }, { total: 0, items: [] }).items;
-  return (
-    <svg viewBox="0 0 120 120" className="h-48 w-48">
-      <circle cx="60" cy="60" r="38" fill="none" stroke="#e2e8f0" strokeWidth="18" />
-      {segments.map(item => (
-          <circle
-            key={item.label}
-            cx="60"
-            cy="60"
-            r="38"
-            fill="none"
-            stroke={item.color}
-            strokeWidth="18"
-            strokeLinecap="butt"
-            pathLength="100"
-            strokeDasharray={`${item.value} ${Math.max(0, 100 - item.value)}`}
-            strokeDashoffset={-item.offset}
-            transform="rotate(-90 60 60)"
-          />
-      ))}
-      <circle cx="60" cy="60" r="27" fill="white" />
-      <text x="60" y="56" textAnchor="middle" className="fill-slate-900 text-[14px] font-black">市场</text>
-      <text x="60" y="73" textAnchor="middle" className="fill-slate-500 text-[9px] font-bold">份额</text>
-    </svg>
-  );
-};
-
 // --- 基础数据配置 (品牌授权车型) ---
 const CAR_MODELS = [
   { id: 'A5_L', series: 'A5', trim: '低配', segment: '年轻', name: 'Audi A5 低配', baseCost: 330000, msrp: 380000, rebate: 30000, color: 'bg-red-100' },
@@ -428,29 +282,10 @@ const AFTERSALES_COMPLAINTS = [
 ];
 
 const DEALER_REGIONS = [
-  { id: 'low_comp', name: '低竞争三四线', marketSizeId: 'small', desc: '客流少、价格稳、人才少，库存压力低。', demand: 0.88, pricePressure: 0.018, leadCost: 0.9, turnover: 0.72, credit: 0.9, competitorChance: 0.38, csiPressure: 0, inventoryPressure: 0.85, staffSupply: 0.82 },
-  { id: 'capital', name: '中竞争省会', marketSizeId: 'medium', desc: '客流正常、价格有波动，竞品动作频繁。', demand: 1.0, pricePressure: 0, leadCost: 1.0, turnover: 1.0, credit: 1.0, competitorChance: 0.6, csiPressure: 0, inventoryPressure: 1.0, staffSupply: 1.0 },
-  { id: 'tier1', name: '高竞争一线', marketSizeId: 'large', desc: '客流高但价格战严重，员工容易被挖，CSI压力高。', demand: 1.18, pricePressure: -0.035, leadCost: 1.18, turnover: 1.35, credit: 1.15, competitorChance: 0.82, csiPressure: 0.22, inventoryPressure: 1.15, staffSupply: 1.15 },
-  { id: 'nev_hot', name: '新能源强势区', marketSizeId: 'medium', desc: '燃油豪华车承压，Q5/A6转化更难，但置换机会多。', demand: 0.96, pricePressure: -0.025, leadCost: 1.08, turnover: 1.1, credit: 1.0, competitorChance: 0.75, csiPressure: 0.08, inventoryPressure: 1.05, staffSupply: 1.0, segmentPressure: ['家庭', '商务'], segmentDemandImpact: -0.06, tradeInBoost: 0.18 },
-];
-
-const MARKET_SIZE_OPTIONS = [
-  { id: 'small', name: '小城市', icon: '🏘️', desc: '2个竞品，市场小但竞争少，适合稳扎稳打。', totalMarketSize: 120, counts: { audiLocal: 0, bmw: 1, benz: 1, ev: 0 } },
-  { id: 'medium', name: '中等城市', icon: '🏙️', desc: '5个竞品，标准强度，既有本品店也有新能源压力。', totalMarketSize: 200, counts: { audiLocal: 1, bmw: 2, benz: 2, ev: 1 } },
-  { id: 'large', name: '一线城市', icon: '🌆', desc: '9个竞品，市场大但价格战和挖人更频繁。', totalMarketSize: 320, counts: { audiLocal: 2, bmw: 3, benz: 3, ev: 2 } },
-];
-
-const COMPETITOR_BRANDS = {
-  bmw: { label: '宝马', tier: 'premium', names: ['宝马东城店', '宝马星河店', '宝马中心店'], basePull: 58 },
-  benz: { label: '奔驰', tier: 'luxury', names: ['奔驰尊享店', '奔驰银座店', '奔驰城南店'], basePull: 60 },
-  ev: { label: '新能源', tier: 'ev', names: ['蔚来中心', '理想直营店', '问界用户中心'], basePull: 64 },
-  audi_local: { label: '同城奥迪', tier: 'premium', names: ['奥迪同城店', '奥迪北区店'], basePull: 54 },
-};
-
-const COMPETITOR_STRATEGIES = [
-  { id: 'aggressive', label: '激进降价' },
-  { id: 'service', label: '服务导向' },
-  { id: 'digital', label: '线上获客' },
+  { id: 'low_comp', name: '低竞争三四线', desc: '客流少、价格稳、人才少，库存压力低。', demand: 0.88, pricePressure: 0.018, leadCost: 0.9, turnover: 0.72, credit: 0.9, competitorChance: 0.38, csiPressure: 0, inventoryPressure: 0.85, staffSupply: 0.82 },
+  { id: 'capital', name: '中竞争省会', desc: '客流正常、价格有波动，竞品动作频繁。', demand: 1.0, pricePressure: 0, leadCost: 1.0, turnover: 1.0, credit: 1.0, competitorChance: 0.6, csiPressure: 0, inventoryPressure: 1.0, staffSupply: 1.0 },
+  { id: 'tier1', name: '高竞争一线', desc: '客流高但价格战严重，员工容易被挖，CSI压力高。', demand: 1.18, pricePressure: -0.035, leadCost: 1.18, turnover: 1.35, credit: 1.15, competitorChance: 0.82, csiPressure: 0.22, inventoryPressure: 1.15, staffSupply: 1.15 },
+  { id: 'nev_hot', name: '新能源强势区', desc: '燃油豪华车承压，Q5/A6转化更难，但置换机会多。', demand: 0.96, pricePressure: -0.025, leadCost: 1.08, turnover: 1.1, credit: 1.0, competitorChance: 0.75, csiPressure: 0.08, inventoryPressure: 1.05, staffSupply: 1.0, segmentPressure: ['家庭', '商务'], segmentDemandImpact: -0.06, tradeInBoost: 0.18 },
 ];
 
 const INVESTOR_PROFILES = [
@@ -459,14 +294,6 @@ const INVESTOR_PROFILES = [
   { id: 'roi_first', name: '财务回报型投资人', desc: '盯净利润、ROA和库存周转。', weights: { profit: 0.38, cash: 0.16, sales: 0.12, csi: 0.08, inventory: 0.22, staff: 0.04 }, riskTolerance: 0.65, budgetStyle: 'roi' },
   { id: 'brand_keeper', name: '品牌口碑型投资人', desc: '盯CSI、投诉和人员稳定。', weights: { profit: 0.16, cash: 0.12, sales: 0.12, csi: 0.36, inventory: 0.10, staff: 0.14 }, riskTolerance: 0.7, budgetStyle: 'brand' },
   { id: 'gambler', name: '赌徒型投资人', desc: '追求高增长，月底评价非常极端。', weights: { profit: 0.12, cash: 0.08, sales: 0.52, csi: 0.08, inventory: 0.10, staff: 0.10 }, riskTolerance: 1.05, budgetStyle: 'volatile', swing: 1.35 },
-];
-const INVESTOR_WEIGHT_LABELS = [
-  ['sales', '销量'],
-  ['profit', '利润'],
-  ['cash', '现金'],
-  ['csi', '口碑'],
-  ['inventory', '库存'],
-  ['staff', '人员'],
 ];
 
 const STAFF_TRAITS = {
@@ -558,27 +385,6 @@ const DEFAULT_FEEDBACK = {
   ratingHistory: [],
 };
 
-const DIFFICULTY_MODES = [
-  { id: 'rookie', name: '新手', desc: '现金更厚，授信更宽，厂家任务略低。', cashMultiplier: 1.18, creditMultiplier: 1.15, targetMultiplier: 0.85, csiBonus: 4 },
-  { id: 'standard', name: '标准', desc: '按当前经营模型运行，适合完整体验。', cashMultiplier: 1, creditMultiplier: 1, targetMultiplier: 1, csiBonus: 0 },
-  { id: 'hardcore', name: '硬核', desc: '现金更紧，授信更少，任务更重。', cashMultiplier: 0.82, creditMultiplier: 0.88, targetMultiplier: 1.18, csiBonus: -5 },
-];
-
-const GAME_SCENARIOS = [
-  { id: 'free', name: '自由模式', months: 0, goal: '没有固定任期目标，长期经营门店；只要不破产、不被解聘，就可以一直玩。', targetNetAssets: 0 },
-  { id: 'survive6', name: '6个月保住职位', months: 6, goal: '任期内不破产、不被投资人连续差评解聘。', targetNetAssets: 3000000 },
-  { id: 'double12', name: '12个月净资产翻倍', months: 12, goal: '12个月后净资产达到600万。', targetNetAssets: 6000000 },
-  { id: 'star12', name: '12个月区域明星店', months: 12, goal: '守住净资产，并拿到至少3个月A/S级月评。', targetNetAssets: 3600000, minExcellentMonths: 3 },
-];
-
-const TUTORIAL_STEPS = [
-  { id: 'order', title: '第一步：订车', detail: '从销售运营进入厂家订货，先用库存融资或汇票订一批主力车型。', tab: 'order', done: ctx => ctx.inventory.length + ctx.pendingOrders.length > 0 },
-  { id: 'arrival', title: '第二步：等车到货', detail: '推进日结，车辆会在3-7天后抵达仓储区。', tab: 'order', done: ctx => ctx.inventory.length > 0 },
-  { id: 'showroom', title: '第三步：布展', detail: '把仓储车辆移入展厅，展车会提升自然客流和成交转化。', tab: 'showroom', done: ctx => ctx.inventory.some(car => car.location === 'showroom') },
-  { id: 'deal', title: '第四步：成交', detail: '推进经营并处理客户谈判或总经理批价，完成第一台真实成交。', tab: 'customer', done: ctx => ctx.monthlyStats.sales > 0 || ctx.soldVehicles.length > 0 },
-  { id: 'month', title: '第五步：月结', detail: '经营到M1 D30，查看返利、投资人评分和下月政策。', tab: 'dashboard', done: ctx => ctx.month > 1 || ctx.feedbackState.ratingHistory.length > 0 },
-];
-
 const ACHIEVEMENTS = [
   { id: 'first_sale', name: '第一张订单', desc: '完成任意一台新车成交。', check: ctx => ctx.totalSold >= 1 },
   { id: 'target_month', name: '首个达成月', desc: '任意月份销量达到厂家目标。', check: ctx => ctx.lastReport?.achieveRate >= 1 },
@@ -586,14 +392,6 @@ const ACHIEVEMENTS = [
   { id: 'cash_wall', name: '现金护城河', desc: '自有现金达到500万。', check: ctx => ctx.cash >= 5000000 },
   { id: 'used_car_lane', name: '置换生意人', desc: '累计拥有3台以上二手车库存或成交记录。', check: ctx => ctx.usedCarCount >= 3 },
   { id: 'investor_a', name: '投资人满意', desc: '投资人月评达到良好以上。', check: ctx => (ctx.lastInvestorScore || 0) >= 72 },
-  { id: 'first_100k', name: '第一桶金', desc: '个人账户达到10万。', check: ctx => ctx.personalAccount >= 100000 },
-  { id: 'millionaire', name: '百万经理人', desc: '个人账户达到100万。', check: ctx => ctx.personalAccount >= 1000000 },
-  { id: 'first_bailout', name: '亲自救火', desc: '累计为公司垫资5万以上。', check: ctx => ctx.totalBailout >= 50000 },
-  { id: 'self_sacrifice', name: '三次托底', desc: '累计垫资3次。', check: ctx => ctx.bailoutCount >= 3 },
-  { id: 'high_salary', name: '高薪上任', desc: 'GM月薪达到3万以上。', check: ctx => ctx.monthlySalary >= 30000 },
-  { id: 'draft_master', name: '票据高手', desc: '同时管理5张以上汇票且无逾期。', check: ctx => ctx.activeDraftCount >= 5 && ctx.overdueDraftCount === 0 },
-  { id: 'credit_broken', name: '信用警戒线', desc: '银行信用低于30。', check: ctx => ctx.bankReputation < 30 },
-  { id: 'credit_recover', name: '信用修复', desc: '经历汇票违约后银行信用恢复到60以上。', check: ctx => ctx.totalDraftsDefaulted > 0 && ctx.bankReputation >= 60 },
 ];
 
 const normalizeFeedbackState = (value = {}) => ({
@@ -749,20 +547,9 @@ const StaffAvatar = ({ type, member, size = 44 }) => {
 export default function App() {
   const [gameState, setGameState] = useState('setup');
   const [dealerRegionId, setDealerRegionId] = useState('capital');
-  const [marketSizeId, setMarketSizeId] = useState('medium');
   const [investorProfileId, setInvestorProfileId] = useState('roi_first');
-  const [difficultyMode, setDifficultyMode] = useState('standard');
-  const [scenarioId, setScenarioId] = useState('survive6');
-  const [tutorial, setTutorial] = useState({ enabled: true, dismissed: false });
-  const [endingSummary, setEndingSummary] = useState(null);
-  const [endingModalDismissed, setEndingModalDismissed] = useState(false);
   const activeRegion = DEALER_REGIONS.find(r => r.id === dealerRegionId) || DEALER_REGIONS[1];
-  const activeMarketSize = MARKET_SIZE_OPTIONS.find(m => m.id === (activeRegion.marketSizeId || marketSizeId)) || MARKET_SIZE_OPTIONS[1];
   const activeInvestor = INVESTOR_PROFILES.find(i => i.id === investorProfileId) || INVESTOR_PROFILES[2];
-  const activeDifficulty = DIFFICULTY_MODES.find(item => item.id === difficultyMode) || DIFFICULTY_MODES[1];
-  const activeScenario = GAME_SCENARIOS.find(item => item.id === scenarioId) || GAME_SCENARIOS[0];
-  const scenarioDurationDays = activeScenario.months * 30;
-  const isFreeScenario = activeScenario.id === 'free';
   const [investorRelations, setInvestorRelations] = useState({
     trust: 72,
     badReviews: 0,
@@ -784,56 +571,15 @@ export default function App() {
     interestRate: 0.0002, 
   });
 
-  const [drafts, setDrafts] = useState({
-    activeDrafts: [],
-    totalDraftAmount: 0,
-    totalBankFeePaid: 0,
-    totalDraftsPaid: 0,
-    totalDraftsDefaulted: 0,
-    creditLimit: 5000000,
-    creditUsed: 0,
-    bankReputation: 70,
-    consecutivePaid: 0,
-  });
-
-  const [gmWealth, setGmWealth] = useState({
-    personalAccount: 50000,
-    monthlySalary: 25000,
-    totalEarned: 50000,
-    totalDividend: 0,
-    totalBailout: 0,
-    outstandingBailout: 0,
-    yearlyNetProfit: 0,
-    investorScoreHistory: [],
-    dividendRate: 0.08,
-    personalAssets: [],
-    salaryHistory: [],
-    bailoutHistory: [],
-    morale: 80,
-  });
-
-  const [virtualSales, setVirtualSales] = useState({
-    virtualCars: [],
-    totalVirtualCount: 0,
-    caughtCount: 0,
-    suspicionLevel: 0,
-    rebateEarnedFromVirtual: 0,
-    penaltyPaid: 0,
-    monthlyTarget: 15,
-    monthlyActual: 0,
-    monthlyVirtual: 0,
-  });
-  const [virtualPlan, setVirtualPlan] = useState({});
-
   const [strategy, setStrategy] = useState({ accessories: 'OEM', warranty: 'OEM' });
-  const [orderForm, setOrderForm] = useState({ isOpen: false, model: null, quantity: 1, color: '黑', paymentMethod: 'draft3' });
+  const [orderForm, setOrderForm] = useState({ isOpen: false, model: null, quantity: 1, color: '黑', useLoan: false });
 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
   const showAlert = (title, message) => setModalConfig({ isOpen: true, title, message, onConfirm: null });
   const showConfirm = (title, message, action) => {
     setModalConfig({ 
       isOpen: true, title, message, 
-      onConfirm: () => { setModalConfig(prev => ({ ...prev, isOpen: false })); action(); }
+      onConfirm: () => { action(); setModalConfig(prev => ({ ...prev, isOpen: false })); } 
     });
   };
   const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
@@ -848,49 +594,6 @@ export default function App() {
     supplyChain: { name: '供应稳定', desc: '物流与厂家排产正常。', priceDrift: 0, delayDays: 0 },
     history: [{ month: 1, desc: '市场平稳开局' }],
   });
-  const createCompetitorStore = (brand, index) => {
-    const meta = COMPETITOR_BRANDS[brand] || COMPETITOR_BRANDS.bmw;
-    const strategy = COMPETITOR_STRATEGIES[(index + (brand === 'ev' ? 2 : brand === 'benz' ? 1 : 0)) % COMPETITOR_STRATEGIES.length];
-    return {
-      id: `comp_${brand}_${index + 1}_${Math.random().toString(36).slice(2, 6)}`,
-      name: meta.names[index % meta.names.length],
-      brand,
-      tier: meta.tier,
-      strategy: strategy.id,
-      priceIndex: 1.0,
-      activityLevel: 0,
-      currentActivity: null,
-      staffQuality: 58 + Math.floor(Math.random() * 28),
-      customerPull: meta.basePull + Math.floor(Math.random() * 16),
-      monthlySales: 0,
-      lastAction: '开局常规经营',
-      isVisible: brand === 'audi_local' || index < 2,
-      relationship: brand === 'audi_local' ? 50 : undefined,
-      cooperation: null,
-      priceWarCount: 0,
-    };
-  };
-  const createCompetitorState = (size = activeMarketSize) => {
-    const stores = [];
-    Object.entries(size.counts).forEach(([key, count]) => {
-      const brand = key === 'audiLocal' ? 'audi_local' : key;
-      for (let i = 0; i < count; i++) stores.push(createCompetitorStore(brand, i));
-    });
-    return {
-      marketSize: size.id,
-      stores,
-      marketShare: { audi: 12, bmw: 24, benz: 24, ev: size.counts.ev ? 14 : 0, audiLocal: size.counts.audiLocal ? 8 : 0, other: 18 },
-      lastMarketShare: null,
-      totalMarketSize: size.totalMarketSize,
-      playerMonthlySales: 0,
-      priceWarActive: false,
-      priceWarRound: 0,
-      intelHistory: [{ month: 1, day: 1, source: '市场情报组', content: `${size.name}竞品版图已建立，建议持续关注降价和活动。`, reliability: '可靠' }],
-      playerCountermeasures: [],
-      cooldowns: {},
-    };
-  };
-  const [competitors, setCompetitors] = useState(() => createCompetitorState(activeMarketSize));
 
   // === 厂家商务政策动态系统 ===
   const [manufacturerPolicy, setManufacturerPolicy] = useState({
@@ -1005,8 +708,6 @@ export default function App() {
     target: 15, sales: 0, leads: 0, walkIns: 0, dccWalkIns: 0, naturalWalkIns: 0, baseRebatesPool: 0, lastMonthPayout: 0, lastMonthAchieve: 0, 
     lastMonthRevenue: 0, revenue: 0, cogs: 0, derivativeRevenue: 0, derivativeCost: 0,
     rent: 0, depreciation: 0, labor: 0, financeCost: 0, marketingCost: 0, storageCost: 0,
-    realRevenue: 0, realCogs: 0, realRebate: 0, virtualRevenue: 0, virtualCogs: 0, virtualRebate: 0,
-    draftBankFee: 0, draftPenalty: 0, floatingCost: 0, manufacturerPenalty: 0,
     lastMonthProcessPassed: false,   // 上月过程指标是否达标
     activitySpend: 0,               // 本月活动支出
     recoveredLeads: 0,              // 本月老客维系回收线索数
@@ -1049,16 +750,8 @@ export default function App() {
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
   const [aiAdvice, setAiAdvice] = useState('店总，您好！当您需要经营策略时，随时召唤我。');
   const [selectedLogDay, setSelectedLogDay] = useState(null);  // 点击日志查看详情
-  const [selectedInboxDay, setSelectedInboxDay] = useState(null);
-  const [inboxFilter, setInboxFilter] = useState({ type: 'all', dayRange: 'all', specificDay: '' });
-  const [readInboxIds, setReadInboxIds] = useState(() => new Set());
-  const [expandedInboxIds, setExpandedInboxIds] = useState(() => new Set());
-  const [expandedMessageIds, setExpandedMessageIds] = useState(() => new Set());
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
-  const [isAdvancingDay, setIsAdvancingDay] = useState(false);
-  const [monthlySummaryModal, setMonthlySummaryModal] = useState(null);
-  const [loadStartedFromSetup, setLoadStartedFromSetup] = useState(false);
 
   const addLog = (type, message) => setLogs(prev => [...prev, { day, type, message }]);
   
@@ -1066,55 +759,6 @@ export default function App() {
   const formatMoney = (amount) => {
     if (isNaN(amount) || amount === null || amount === undefined) return '¥0';
     return `¥${Math.round(amount).toLocaleString()}`;
-  };
-
-  const getDraftFeeRate = (term) => {
-    const reputation = drafts.bankReputation ?? 70;
-    if (term === 6) return 0.008;
-    if (reputation >= 80) return 0.004;
-    if (reputation >= 60) return 0.005;
-    if (reputation >= 40) return 0.008;
-    return 0.01;
-  };
-  const addMonthsToGameDate = (baseMonth, baseDay, addMonths) => ({
-    month: baseMonth + addMonths,
-    day: baseDay,
-  });
-  const getDraftRemainingDays = (draft, currentDay = day) => {
-    const dueAbsoluteDay = (draft.dueDate.month - 1) * 30 + draft.dueDate.day;
-    return dueAbsoluteDay - currentDay;
-  };
-  const getAvailableDraftCredit = () => Math.max(0, (drafts.creditLimit || 0) - (drafts.creditUsed || 0));
-  const getCompanyDailyBurn = () => {
-    const rent = (facility.showroomSpots + facility.warehouseCapacity) * 100;
-    const depreciation = facility.level * 800;
-    const payroll =
-      (dccCount * staff.dcc.salary) +
-      (salesCount * staff.sales.salary) +
-      (serviceCount * (staff.service?.salary || STAFF_ROLE_META.service.salary)) +
-      (streamerCount * (staff.streamer?.salary || STAFF_ROLE_META.streamer.salary)) +
-      (techCount * afterSales.salary);
-    const marketingBurn = Math.max(0, marketing.leadPurchaseBudget || marketing.budget || 0) + Math.max(0, marketing.livestreamBudget || 0);
-    return rent + depreciation + payroll + marketingBurn + ((finance.loan || 0) * (finance.interestRate || 0)) + (inventory.filter(c => c.location === 'warehouse').length * 50);
-  };
-  const getActiveCountermeasureValue = (type, state = competitors) => (state.playerCountermeasures || [])
-    .filter(item => item.type === type && item.remainingDays > 0)
-    .reduce((sum, item) => sum + (item.effectValue || 0), 0);
-  const getCompetitorPressure = (state = competitors) => {
-    const stores = state.stores || [];
-    const activeThreat = stores.reduce((sum, store) => {
-      const activityBoost = store.currentActivity ? (store.currentActivity.pullBoost || 0) : 0;
-      const priceBoost = Math.max(0, (1 - (store.priceIndex || 1)) * 180);
-      const localMult = store.brand === 'audi_local' ? 1.35 : 1;
-      return sum + ((store.customerPull || 50) + activityBoost + priceBoost) * localMult;
-    }, 0);
-    const serviceShield = getActiveCountermeasureValue('service', state);
-    const referralShield = getActiveCountermeasureValue('referral', state);
-    const csiShield = getActiveCountermeasureValue('csi_push', state);
-    const cooperationShield = stores.some(store => store.brand === 'audi_local' && store.cooperation?.remainingDays > 0) ? 0.12 : 0;
-    const warPressure = state.priceWarActive ? 0.08 : 0;
-    const pressure = Math.min(0.36, (activeThreat / Math.max(1, (state.totalMarketSize || 200) * 145)) + warPressure);
-    return Math.max(0, pressure - serviceShield - referralShield - csiShield - cooperationShield);
   };
 
   const estimateDealAddons = (modelId, finalPrice) => {
@@ -1126,40 +770,6 @@ export default function App() {
     const rebate = getDynamicRebate(modelId);
     const grossProfit = finalPrice - model.baseCost + rebate + derivativeProfit + financeCommission;
     return { derivativeProfit, financeCommission, rebate, grossProfit };
-  };
-
-  const getRetailQualityScore = () => {
-    const salesScore = Math.max(0, Math.min(1, salesAvgSkill / 100));
-    const csiScore = Math.max(0, Math.min(1, (csi.score - 70) / 30));
-    const financeTalent = staff.sales.members.length > 0 ? traitSum('sales', staff.sales.members, 'financeBonus') / staff.sales.members.length : 0;
-    const financeScore = Math.max(0, Math.min(1, 0.42 + financeTalent + (salesAvgSkill >= 75 ? 0.12 : 0) + (csi.score >= 92 ? 0.08 : 0)));
-    return Math.max(0, Math.min(1, salesScore * 0.42 + csiScore * 0.34 + financeScore * 0.24));
-  };
-
-  const getPriceReality = (offerPrice, referencePrice, options = {}) => {
-    const reference = Math.max(1, Number(referencePrice) || 1);
-    const gapRatio = ((Number(offerPrice) || 0) - reference) / reference;
-    const qualityScore = options.qualityScore ?? getRetailQualityScore();
-    const financeIntent = Number(options.financeIntent) || 0;
-    const financeModeBoost = options.mode === 'finance' ? 0.01 + financeIntent * 0.018 : 0;
-    const allowedPremium = Math.min(0.065, 0.006 + qualityScore * 0.038 + financeModeBoost);
-    if (gapRatio <= 0) {
-      return {
-        gapRatio,
-        allowedPremium,
-        conversionAdj: Math.min(0.18, Math.abs(gapRatio) * 1.25),
-        closeCap: 0.96,
-        overAllowed: false,
-      };
-    }
-    const overAllowed = Math.max(0, gapRatio - allowedPremium);
-    const conversionAdj = -(gapRatio * 3.2 + overAllowed * 8.5 + Math.max(0, gapRatio - 0.06) * 13 + Math.max(0, gapRatio - 0.10) * 18);
-    let closeCap = 0.92;
-    if (overAllowed > 0) closeCap = Math.max(0.03, 0.24 + qualityScore * 0.08 - overAllowed * 4.6);
-    if (gapRatio > 0.08) closeCap = Math.min(closeCap, 0.08 + qualityScore * 0.04);
-    if (gapRatio > 0.12) closeCap = Math.min(closeCap, 0.025 + qualityScore * 0.015);
-    if (gapRatio > 0.16) closeCap = 0.01;
-    return { gapRatio, allowedPremium, conversionAdj, closeCap, overAllowed: overAllowed > 0 };
   };
 
   const createPriceApprovalCase = (car, modelDef, finalConv) => {
@@ -1221,17 +831,13 @@ export default function App() {
     const archetype = CUSTOMER_ARCHETYPES[Math.floor(Math.random() * CUSTOMER_ARCHETYPES.length)];
     const channel = LEAD_CHANNELS.find(c => c.id === channelId) || LEAD_CHANNELS[0];
     const currentMarketPrice = marketPrices[modelDef.id] || modelDef.msrp;
-    const competitorPrice = Math.round(currentMarketPrice * (0.96 + Math.random() * 0.04));
     const requestedDiscount = Math.round((8000 + Math.random() * 26000 * archetype.priceFocus) / 1000) * 1000;
-    const financeIntent = Math.min(0.95, 0.35 + archetype.financeBias + (channelId === 'livestream' ? 0.1 : 0));
-    const qualityScore = getRetailQualityScore();
-    const premiumTolerance = 0.006 + qualityScore * 0.035 + financeIntent * 0.012;
-    const targetPrice = Math.max(Math.round(modelDef.baseCost * 0.86), Math.min(car.price - requestedDiscount, Math.round(competitorPrice * (1 + premiumTolerance))));
+    const targetPrice = Math.max(Math.round(modelDef.baseCost * 0.86), car.price - requestedDiscount);
     const floorPrice = Math.max(Math.round(modelDef.baseCost * 0.82), targetPrice - 8000);
+    const financeIntent = Math.min(0.95, 0.35 + archetype.financeBias + (channelId === 'livestream' ? 0.1 : 0));
     const tradeInIntent = Math.min(0.95, 0.18 + archetype.tradeInBias + (activeRegion.tradeInBoost || 0));
     const urgency = archetype.id === 'urgent' ? 0.85 : 0.35 + Math.random() * 0.45;
-    const priceReality = getPriceReality(car.price, competitorPrice, { qualityScore, financeIntent });
-    const baseClose = Math.max(0.06, Math.min(0.82, 0.24 + (salesAvgSkill / 360) + (channel.walkInFactor - 0.9) * 0.25 + (csi.score >= 92 ? 0.05 : csi.score >= 86 ? 0 : -0.06) + Math.min(0, priceReality.conversionAdj * 0.35)));
+    const baseClose = Math.min(0.9, 0.28 + (salesAvgSkill / 280) + (channel.walkInFactor - 0.9) * 0.3 + (csi.score >= 90 ? 0.05 : -0.04));
     const estimatedAddons = estimateDealAddons(modelDef.id, targetPrice);
     return {
       id: `customer_${sourceDay}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -1253,8 +859,7 @@ export default function App() {
       marketPrice: currentMarketPrice,
       targetPrice,
       floorPrice,
-      competitorPrice,
-      allowedPremium: priceReality.allowedPremium,
+      competitorPrice: Math.round(currentMarketPrice * (0.96 + Math.random() * 0.04)),
       financeIntent,
       tradeInIntent,
       urgency,
@@ -1264,14 +869,8 @@ export default function App() {
   };
 
   const startNewGame = () => {
-    const startingCash = Math.round(3000000 * activeDifficulty.cashMultiplier);
-    const startingCredit = Math.round(10000000 * (activeRegion.credit || 1) * activeDifficulty.creditMultiplier);
-    const startingTarget = Math.max(8, Math.round(15 * activeDifficulty.targetMultiplier));
-    const openingCompetitors = createCompetitorState(activeMarketSize);
-    setFinance(f => ({ ...f, cash: startingCash, loan: 0, creditLimit: startingCredit }));
-    setMonthlyStats(prev => ({ ...prev, target: startingTarget, sales: 0, leads: 0, walkIns: 0, dccWalkIns: 0, naturalWalkIns: 0 }));
-    setCsi(prev => ({ ...prev, score: Math.max(50, Math.min(100, 90 + activeDifficulty.csiBonus)), complaints: 0, monthScore: 0 }));
-    setCompetitors(openingCompetitors);
+    const startingCredit = Math.round(10000000 * (activeRegion.credit || 1));
+    setFinance(f => ({ ...f, creditLimit: startingCredit }));
     setMarketPrices(() => {
       const prices = {};
       CAR_MODELS.forEach(car => {
@@ -1284,17 +883,12 @@ export default function App() {
       history: [{ month: 1, desc: `${activeRegion.name}开局` }],
     }));
     setManagerInbox([
-      { id: 'inbox_opening_goal', day: 1, from: '董事会', title: `${activeScenario.name}任命书`, body: `本局目标：${activeScenario.goal} ${activeScenario.months > 0 ? `任期${activeScenario.months}个月。` : '不限固定任期。'}难度：${activeDifficulty.name}，首月厂家任务${startingTarget}台。` },
       { id: 'inbox_opening_region', day: 1, from: '市场情报组', title: `${activeRegion.name}经营环境`, body: `${activeRegion.desc} 区域需求系数×${activeRegion.demand.toFixed(2)}，获客成本×${activeRegion.leadCost.toFixed(2)}，竞品事件概率${Math.round(activeRegion.competitorChance * 100)}%。` },
-      { id: 'inbox_opening_competitors', day: 1, from: '市场情报组', title: `${activeMarketSize.name}竞品版图`, body: `本地月需求约${activeMarketSize.totalMarketSize}台，已识别${openingCompetitors.stores.length}家竞品门店。竞品降价和活动会分流到店量，请关注市场Tab。` },
       { id: 'inbox_opening_investor', day: 1, from: '投资人办公室', title: `${activeInvestor.name}授权函`, body: `你是运营总经理，不是老板。${activeInvestor.desc} 月底会根据销量、净利润、现金安全、库存周转、CSI和人员稳定评价你。` },
       { id: 'inbox_bank_credit', day: 1, from: '合作银行', title: '库存融资授信已开通', body: `当前库存融资授信额度为${formatMoney(startingCredit)}。卖车回款将优先归还库存融资，月底根据经营数据重新评估额度。` },
     ]);
-    setLogs([{ day: 1, type: 'info', message: `你被任命为这家奥迪4S店运营总经理。剧本：${activeScenario.name}；难度：${activeDifficulty.name}；开局区域：${activeRegion.name}；市场规模：${activeMarketSize.name}；投资人：${activeInvestor.name}。` }]);
+    setLogs([{ day: 1, type: 'info', message: `你被任命为这家奥迪4S店运营总经理。开局区域：${activeRegion.name}；投资人：${activeInvestor.name}。目标不是任性经营，而是在投资人压力下活下来。` }]);
     setFeedback(DEFAULT_FEEDBACK);
-    setTutorial({ enabled: true, dismissed: false });
-    setEndingSummary(null);
-    setEndingModalDismissed(false);
     setGameState('playing');
   };
 
@@ -1405,7 +999,7 @@ export default function App() {
     setApprovalCases(prev => prev.filter(c => c.id !== caseId));
   };
 
-  const buildInvestorReview = ({ monthStats, settlementCash, settlementLoan, settlementCreditLimit, stockList, csiScore, lostCount, overdueDraftCount = (drafts.activeDrafts || []).filter(d => d.status === 'defaulted').length }) => {
+  const buildInvestorReview = ({ monthStats, settlementCash, settlementLoan, settlementCreditLimit, stockList, csiScore, lostCount }) => {
     const monthGp1 = (monthStats.revenue || 0) - (monthStats.cogs || 0);
     const monthDeriv = (monthStats.derivativeRevenue || 0) - (monthStats.derivativeCost || 0);
     const monthAfterSales = (monthStats.afterSalesRevenue || 0) - (monthStats.afterSalesCost || 0);
@@ -1416,15 +1010,9 @@ export default function App() {
     const debtRatio = settlementCreditLimit > 0 ? settlementLoan / settlementCreditLimit : 1;
     const avgStockDays = stockList.length > 0 ? stockList.reduce((sum, car) => sum + (car.stockDays || 0), 0) / stockList.length : 0;
     const stockPressure = Math.min(1, (stockList.length / Math.max(1, facility.showroomSpots + facility.warehouseCapacity)) * 0.55 + (avgStockDays / 120) * 0.45);
-    const cashCoverageDaysReview = Math.floor((settlementCash || 0) / Math.max(1, getCompanyDailyBurn()));
-    const cashFlowAdj = cashCoverageDaysReview >= 30 ? 3 : cashCoverageDaysReview >= 15 ? 1 : -10;
-    const assetAdj = debtRatio < 0.55 ? 2 : debtRatio <= 0.8 ? 0 : -8;
-    const overdueDraftAdj = overdueDraftCount * -5;
-    const manufacturerPenaltyAdj = (monthStats.manufacturerPenalty || 0) > 0 || competitors.priceWarActive ? -10 : 0;
-    const poorOutcomeAdj = monthNetProfit < 0 && achieve < 0.5 ? -18 : monthNetProfit < 0 && achieve < 0.8 ? -10 : monthNetProfit < -100000 ? -6 : 0;
     const scoreParts = {
-      profit: Math.max(0, Math.min(100, 45 + monthNetProfit / 4500)),
-      cash: Math.max(0, Math.min(monthNetProfit < 0 && achieve < 0.6 ? 72 : 100, 86 - debtRatio * 72 + Math.min(10, settlementCash / 400000))),
+      profit: Math.max(0, Math.min(100, 52 + monthNetProfit / 6000)),
+      cash: Math.max(0, Math.min(100, 92 - debtRatio * 75 + Math.min(18, settlementCash / 200000))),
       sales: Math.max(0, Math.min(120, achieve * 100)),
       csi: Math.max(0, Math.min(100, csiScore)),
       inventory: Math.max(0, Math.min(100, 100 - stockPressure * 80)),
@@ -1432,11 +1020,10 @@ export default function App() {
     };
     let score = Object.entries(activeInvestor.weights).reduce((sum, [key, weight]) => sum + (scoreParts[key] || 0) * weight, 0);
     if (activeInvestor.swing) score = 50 + (score - 50) * activeInvestor.swing;
-    score += cashFlowAdj + assetAdj + overdueDraftAdj + manufacturerPenaltyAdj + poorOutcomeAdj;
     score = Math.max(0, Math.min(100, Math.round(score)));
     const grade = score >= 86 ? '优秀' : score >= 72 ? '良好' : score >= 60 ? '勉强过关' : score >= 45 ? '差评' : '严重差评';
-    const comment = `${activeInvestor.name}评价：销量${Math.round(achieve * 100)}%，净利润${formatMoney(monthNetProfit)}，现金覆盖${cashCoverageDaysReview}天，负债率${Math.round(debtRatio * 100)}%，平均库龄${Math.round(avgStockDays)}天，逾期汇票${overdueDraftCount}张，CSI ${Math.round(csiScore)}分，人员流失${lostCount}人。`;
-    return { score, grade, comment, monthNetProfit, achieve, scoreFactors: { cashCoverageDaysReview, cashFlowAdj, assetAdj, overdueDraftAdj, manufacturerPenaltyAdj, poorOutcomeAdj } };
+    const comment = `${activeInvestor.name}评价：销量${Math.round(achieve * 100)}%，净利润${formatMoney(monthNetProfit)}，负债率${Math.round(debtRatio * 100)}%，平均库龄${Math.round(avgStockDays)}天，CSI ${Math.round(csiScore)}分，人员流失${lostCount}人。`;
+    return { score, grade, comment, monthNetProfit, achieve };
   };
 
   const buildMonthlyFeedbackReport = ({ monthNo, monthStats, finalPayout, investorReview, csiScore, settlementCash, settlementLoan, settlementCreditLimit, stockList }) => {
@@ -1479,11 +1066,6 @@ export default function App() {
       netProfit: investorReview.monthNetProfit,
       payout: finalPayout,
       investorScore: investorReview.score,
-      sales: monthStats.sales,
-      revenue: monthStats.revenue,
-      cash: settlementCash,
-      loan: settlementLoan,
-      csiScore,
     };
   };
 
@@ -1496,14 +1078,6 @@ export default function App() {
       usedCarCount: context.usedCarCount ?? usedCars.length,
       lastReport: monthlyReport || normalized.lastMonthReport,
       lastInvestorScore: monthlyReport?.investorScore ?? investorRelations.lastScore,
-      personalAccount: context.personalAccount ?? (gmWealth.personalAccount || 0),
-      monthlySalary: context.monthlySalary ?? (gmWealth.monthlySalary || 0),
-      totalBailout: context.totalBailout ?? (gmWealth.totalBailout || 0),
-      bailoutCount: context.bailoutCount ?? ((gmWealth.bailoutHistory || []).length),
-      activeDraftCount: context.activeDraftCount ?? (drafts.activeDrafts || []).filter(d => d.status === 'active').length,
-      overdueDraftCount: context.overdueDraftCount ?? (drafts.activeDrafts || []).filter(d => d.status === 'defaulted').length,
-      bankReputation: context.bankReputation ?? (drafts.bankReputation ?? 70),
-      totalDraftsDefaulted: context.totalDraftsDefaulted ?? (drafts.totalDraftsDefaulted || 0),
     };
     const newAchievementIds = ACHIEVEMENTS
       .filter(def => !normalized.unlockedAchievementIds.includes(def.id) && def.check(achievementContext))
@@ -1514,15 +1088,14 @@ export default function App() {
         unlockedAchievementIds: [...normalized.unlockedAchievementIds, ...newAchievementIds],
         monthlyBadges: monthlyReport ? [...normalized.monthlyBadges, ...monthlyReport.badges].slice(-36) : normalized.monthlyBadges,
         lastMonthReport: monthlyReport || normalized.lastMonthReport,
-        ratingHistory: monthlyReport ? [...normalized.ratingHistory, monthlyReport].slice(-12) : normalized.ratingHistory,
+        ratingHistory: monthlyReport ? [...normalized.ratingHistory, monthlyReport].slice(-6) : normalized.ratingHistory,
       },
       newAchievementIds,
     };
   };
 
   const handleNextDay = () => {
-    if (gameState !== 'playing' || isAdvancingDay) return;
-    setIsAdvancingDay(true);
+    if (gameState !== 'playing') return;
 
     let f = { ...finance };
     let m = { ...marketing, leadChannels: normalizeLeadChannels(marketing) };
@@ -1534,11 +1107,8 @@ export default function App() {
     let inboxItems = [];
     let expiredCsiPenalty = 0;
     let expiredComplaintCount = 0;
-    let terminalStop = false;
-    let nextEndingSummary = endingSummary;
     let nextApprovalCases = approvalCases.filter(item => item.status === 'pending');
     let nextCustomerDeals = customerDeals.filter(item => item.status === 'pending');
-    let nextInvestorRelations = { ...investorRelations };
     const expiredApprovalCases = nextApprovalCases.filter(item => item.dueDay < day + 1);
     nextApprovalCases = nextApprovalCases.filter(item => item.dueDay >= day + 1);
     const expiredCustomerDeals = nextCustomerDeals.filter(item => item.dueDay < day + 1);
@@ -1560,22 +1130,6 @@ export default function App() {
     }
     let stats = { newLeads: 0, walkIns: 0, sales: 0 };
     let mStats = { ...monthlyStats }; 
-    let nextDrafts = { ...drafts, activeDrafts: (drafts.activeDrafts || []).map(d => ({ ...d })) };
-    let nextGmWealth = { ...gmWealth };
-    const gmMoraleScore = nextGmWealth.morale ?? 80;
-    const gmEfficiency = gmMoraleScore >= 90 ? 1.05 : gmMoraleScore >= 70 ? 1 : gmMoraleScore >= 45 ? 0.94 : 0.86;
-    let nextVirtualSales = { ...virtualSales, virtualCars: (virtualSales.virtualCars || []).map(car => ({ ...car, floatingMonths: Math.max(0, Math.floor((month - (car.virtualMonth || month)) || 0)) })) };
-    let nextCompetitors = {
-      ...competitors,
-      stores: (competitors.stores || []).map(store => ({
-        ...store,
-        currentActivity: store.currentActivity ? { ...store.currentActivity } : null,
-        cooperation: store.cooperation ? { ...store.cooperation } : null,
-      })),
-      playerCountermeasures: (competitors.playerCountermeasures || []).map(item => ({ ...item })),
-      intelHistory: [...(competitors.intelHistory || [])],
-      cooldowns: { ...(competitors.cooldowns || {}) },
-    };
 
     const rent = (facility.showroomSpots + facility.warehouseCapacity) * 100;
     const depreciation = facility.level * 800;
@@ -1665,62 +1219,7 @@ export default function App() {
       setGameState('bankrupt');
       currentLogs.push({ day: day + 1, type: 'expense', message: `【破产警告】贷款超额 (超 ${formatMoney(f.creditLimit)})，资金链彻底断裂！` });
       setFinance(f); setLogs(prev => [...prev, ...currentLogs]);
-      setIsAdvancingDay(false);
       return;
-    }
-
-    const nextMonthNo = Math.floor(((day + 1) - 1) / 30) + 1;
-    const nextDayOfMonth = (((day + 1) - 1) % 30) + 1;
-    let draftPenaltyToday = 0;
-    nextDrafts.activeDrafts = nextDrafts.activeDrafts.map(draft => {
-      if (draft.status === 'defaulted') {
-        const penalty = Math.round((draft.overduePrincipal || draft.amount * 0.8) * 0.0005);
-        draftPenaltyToday += penalty;
-        return { ...draft, overduePenalty: (draft.overduePenalty || 0) + penalty };
-      }
-      if (draft.status !== 'active') return draft;
-      if (draft.dueDate.month !== nextMonthNo || draft.dueDate.day !== nextDayOfMonth) return draft;
-
-      const duePayment = Math.round(draft.amount * 0.8);
-      if (f.cash >= duePayment) {
-        f.cash -= duePayment;
-        nextDrafts.creditUsed = Math.max(0, (nextDrafts.creditUsed || 0) - draft.amount);
-        nextDrafts.totalDraftsPaid = (nextDrafts.totalDraftsPaid || 0) + draft.amount;
-        nextDrafts.bankReputation = Math.min(100, (nextDrafts.bankReputation || 70) + 3);
-        nextDrafts.consecutivePaid = (nextDrafts.consecutivePaid || 0) + 1;
-        if (nextDrafts.consecutivePaid > 0 && nextDrafts.consecutivePaid % 3 === 0) {
-          nextDrafts.bankReputation = Math.min(100, nextDrafts.bankReputation + 5);
-          nextGmWealth.morale = Math.min(100, (nextGmWealth.morale || 80) + 5);
-        }
-        todayLedger.push({ label: `汇票到期兑付(${draft.carModel} ×${draft.carCount})`, amount: -duePayment, type: 'expense' });
-        currentLogs.push({ day: day + 1, type: 'success', message: `🏦【汇票兑付】${draft.carModel} ${draft.carCount}台对应汇票按时兑付，支付尾款 ${formatMoney(duePayment)}，银行信用提升。` });
-        return { ...draft, status: 'paid', paidDate: { month: nextMonthNo, day: nextDayOfMonth } };
-      }
-
-      const shortfall = duePayment - Math.max(0, f.cash);
-      const paidNow = Math.max(0, f.cash);
-      f.cash = 0;
-      nextDrafts.creditUsed = Math.max(0, (nextDrafts.creditUsed || 0) - draft.amount);
-      nextDrafts.totalDraftsDefaulted = (nextDrafts.totalDraftsDefaulted || 0) + draft.amount;
-      nextDrafts.bankReputation = Math.max(0, (nextDrafts.bankReputation || 70) - 15);
-      nextDrafts.consecutivePaid = 0;
-      nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 20);
-      todayLedger.push({ label: `汇票兑付不足(${draft.carModel} ×${draft.carCount})`, amount: -paidNow, type: 'expense' });
-      currentLogs.push({ day: day + 1, type: 'expense', message: `🚨【汇票逾期】${draft.carModel} ${draft.carCount}台汇票今日到期，应付 ${formatMoney(duePayment)}，缺口 ${formatMoney(shortfall)}。银行信用下降，GM士气受挫。` });
-      inboxItems.push({
-        id: `inbox_draft_default_${draft.id}`,
-        day: day + 1,
-        from: '合作银行',
-        title: '汇票兑付逾期通知',
-        body: `${draft.carModel} ${draft.carCount}台对应汇票到期未足额兑付，缺口${formatMoney(shortfall)}。请尽快回款或垫资处理，逾期按日计罚息。`,
-      });
-      return { ...draft, status: 'defaulted', defaultDate: { month: nextMonthNo, day: nextDayOfMonth }, overduePrincipal: shortfall, overduePenalty: 0, creditReleased: true };
-    });
-    if (draftPenaltyToday > 0) {
-      mStats.financeCost += draftPenaltyToday;
-      mStats.draftPenalty = (mStats.draftPenalty || 0) + draftPenaltyToday;
-      todayLedger.push({ label: '汇票逾期罚息计提', amount: draftPenaltyToday, type: 'pending' });
-      currentLogs.push({ day: day + 1, type: 'warning', message: `🏦【逾期罚息】未结清汇票产生罚息 ${formatMoney(draftPenaltyToday)}，已计入逾期应付。` });
     }
 
     const newLeads = Math.floor((leadPurchaseBudget / (50 * (activeRegion.leadCost || 1))) * (0.7 + Math.random() * 0.6) * (activeRegion.demand || 1));
@@ -1763,49 +1262,13 @@ export default function App() {
     currentLogs.push(...activityLogMessages);
     m.activeActivities = stillActive;
 
-    nextCompetitors.playerCountermeasures = (nextCompetitors.playerCountermeasures || [])
-      .map(item => ({ ...item, remainingDays: item.remainingDays - 1 }))
-      .filter(item => item.remainingDays > 0);
-    nextCompetitors.stores = (nextCompetitors.stores || []).map(store => {
-      const currentActivity = store.currentActivity
-        ? { ...store.currentActivity, remainingDays: store.currentActivity.remainingDays - 1 }
-        : null;
-      const cooperation = store.cooperation
-        ? { ...store.cooperation, remainingDays: store.cooperation.remainingDays - 1 }
-        : null;
-      if (store.brand === 'audi_local' && cooperation?.remainingDays > 0 && Math.random() < 0.05) {
-        currentLogs.push({ day: day + 1, type: 'warning', message: `🌐【联盟背刺】${store.name}突然背弃联合抗竞并暗中降价，联盟解除，关系大幅下降。` });
-        return {
-          ...store,
-          currentActivity: { type: 'discount', effect: '背刺降价', pullBoost: 28, remainingDays: 10 },
-          cooperation: null,
-          priceIndex: Math.max(0.82, (store.priceIndex || 1) - 0.08),
-          relationship: Math.max(0, (store.relationship || 50) - 30),
-          lastAction: '背弃联盟，暗中降价抢客',
-        };
-      }
-      return {
-        ...store,
-        currentActivity: currentActivity && currentActivity.remainingDays > 0 ? currentActivity : null,
-        cooperation: cooperation && cooperation.remainingDays > 0 ? cooperation : null,
-        relationship: store.brand === 'audi_local' && dayOfMonth === 30 ? Math.min(100, (store.relationship || 50) + 1) : store.relationship,
-        priceIndex: store.currentActivity?.type === 'discount' && currentActivity?.remainingDays > 0 ? store.priceIndex : Math.min(1, (store.priceIndex || 1) + 0.03),
-      };
-    });
-    Object.keys(nextCompetitors.cooldowns || {}).forEach(key => {
-      nextCompetitors.cooldowns[key] = Math.max(0, (nextCompetitors.cooldowns[key] || 0) - 1);
-    });
-
     // === DCC 线索处理 ===
-    const dccCapacity = Math.floor((dccCount * 100 + traitSum('dcc', staff.dcc.members, 'capacityBonus')) * gmEfficiency);
+    const dccCapacity = dccCount * 100 + traitSum('dcc', staff.dcc.members, 'capacityBonus');
     const currentLeadChannels = { ...EMPTY_LEAD_CHANNELS, ...m.leadChannels };
     const currentLeadTotal = sumLeadChannels(currentLeadChannels);
     const processedLeads = Math.min(currentLeadTotal, dccCapacity);
     const baseWalkInRate = 0.05 + (dccAvgSkill / 100) * 0.15;
-    const competitorPressure = getCompetitorPressure(nextCompetitors);
-    const playerPriceBoost = getActiveCountermeasureValue('price', nextCompetitors);
-    const playerServiceBoost = getActiveCountermeasureValue('service', nextCompetitors);
-    const walkInRate = Math.max(0.01, baseWalkInRate + activeDccWalkinBonus - competitorPressure * 0.18 + playerServiceBoost * 0.25);  // 到店礼加成
+    const walkInRate = baseWalkInRate + activeDccWalkinBonus;  // 到店礼加成
     let dccWalkIns = 0;
     let processedByChannel = { ...EMPTY_LEAD_CHANNELS };
     let remainingLeadChannels = { ...EMPTY_LEAD_CHANNELS };
@@ -1836,8 +1299,8 @@ export default function App() {
     }
     
     const showroomModelCount = new Set(inventory.filter(c => c.location === 'showroom').map(c => c.modelId)).size;
-    const baseNaturalWalkIns = Math.floor((showroomModelCount * 0.8 + facility.level * 1.0 + Math.random() * 2) * marketEnvironment.seasonIndex * (activeRegion.demand || 1) * gmEfficiency);
-    const naturalWalkIns = Math.max(0, Math.floor((baseNaturalWalkIns + activeNaturalBonus) * (1 - competitorPressure + playerPriceBoost)));  // 车展加成
+    const baseNaturalWalkIns = Math.floor((showroomModelCount * 0.8 + facility.level * 1.0 + Math.random() * 2) * marketEnvironment.seasonIndex * (activeRegion.demand || 1));
+    const naturalWalkIns = baseNaturalWalkIns + activeNaturalBonus;  // 车展加成
     
     const totalWalkIns = dccWalkIns + naturalWalkIns;
 
@@ -1862,7 +1325,7 @@ export default function App() {
       todayWalkInSegments.push(customerSegments[Math.floor(Math.random() * customerSegments.length)]);
     }
 
-    const salesCapacity = Math.max(0, Math.floor(salesCount * 5 * gmEfficiency));
+    const salesCapacity = salesCount * 5;
     const handledCustomers = todayWalkInSegments.sort(() => Math.random() - 0.5).slice(0, salesCapacity);
     
     let updatedInventory = [...inventory].map(car => ({ ...car, stockDays: (car.stockDays || 0) + 1 }));
@@ -1884,8 +1347,6 @@ export default function App() {
             subsidized: false,
             stockDays: 0,
             location: 'warehouse',
-            draftId: order.draftId || null,
-            purchasePaymentMethod: order.paymentMethod || 'cash',
           }));
           updatedInventory = [...updatedInventory, ...newCars];
           currentLogs.push({ day: day + 1, type: 'success', message: `🚛【车辆到货】${order.modelName} ${canArrive} 台已运抵仓储区！${canArrive < order.quantity ? `因库位不足，${order.quantity - canArrive} 台无法入库，厂家暂缓发运。` : ''}` });
@@ -1907,26 +1368,19 @@ export default function App() {
     const testDriveModelIds = new Set(testDriveCars.map(t => t.modelId));
 
     for (const segment of handledCustomers) {
-      if (updatedInventory.length === 0 && (nextVirtualSales.virtualCars || []).length === 0) break;
+      if (updatedInventory.length === 0) break;
       const matchingCars = updatedInventory.filter(car => CAR_MODELS.find(cm => cm.id === car.modelId)?.segment === segment);
-      const matchingVirtualCars = (nextVirtualSales.virtualCars || []).filter(car => {
-        const model = CAR_MODELS.find(cm => cm.id === car.modelId);
-        return model?.segment === segment && !car.realSold;
-      });
-      if (matchingCars.length === 0 && matchingVirtualCars.length === 0) continue;
+      if (matchingCars.length === 0) continue;
 
-      const useVirtualCar = matchingVirtualCars.length > 0;
-      const car = useVirtualCar
-        ? matchingVirtualCars[Math.floor(Math.random() * matchingVirtualCars.length)]
-        : matchingCars[Math.floor(Math.random() * matchingCars.length)];
-      const randomIdx = useVirtualCar ? -1 : updatedInventory.findIndex(c => c.id === car.id);
+      const car = matchingCars[Math.floor(Math.random() * matchingCars.length)];
+      const randomIdx = updatedInventory.findIndex(c => c.id === car.id);
       const modelDef = CAR_MODELS.find(cm => cm.id === car.modelId);
-      const currentMarketPrice = marketPrices[modelDef.id] || getDynamicMsrp(modelDef.id);
+      const currentMarketPrice = marketPrices[modelDef.id];
 
       const baseConv = facility.level * 0.02;
       const skillConv = (salesAvgSkill / 100) * 0.20;
-      const priceReality = getPriceReality(car.price, currentMarketPrice);
-      const priceConv = priceReality.conversionAdj;
+      const priceDiffRatio = (currentMarketPrice - car.price) / currentMarketPrice;
+      const priceConv = priceDiffRatio * 5; 
       // CSI口碑影响转化率：高CSI→客户信任→易成交；低CSI→差评多→客户犹豫
       const csiConv = csi.score >= 95 ? 0.08 : csi.score >= 90 ? 0.04 : csi.score >= 85 ? -0.03 : -0.08;
       const competitorDemandConv = marketEnvironment.competitorEvent.affectedSegments.includes(modelDef.segment)
@@ -1934,8 +1388,7 @@ export default function App() {
         : 0;
       const regionDemandConv = activeRegion.segmentPressure?.includes(modelDef.segment) ? (activeRegion.segmentDemandImpact || 0) : 0;
       const salesPriceKillerBonus = staff.sales.members.length > 0 ? traitSum('sales', staff.sales.members, 'priceSensitivity') / staff.sales.members.length : 0;
-      const moraleConv = gmMoraleScore >= 90 ? 0.05 : gmMoraleScore >= 70 ? 0 : gmMoraleScore >= 45 ? -0.04 : -0.10;
-      let finalConv = Math.max(0.01, Math.min(0.95, baseConv + skillConv + priceConv + csiConv + moraleConv + activeConvBonus + competitorDemandConv + regionDemandConv + salesPriceKillerBonus - competitorPressure * 0.16 + playerServiceBoost * 0.2));
+      let finalConv = Math.max(0.01, Math.min(0.95, baseConv + skillConv + priceConv + csiConv + activeConvBonus + competitorDemandConv + regionDemandConv + salesPriceKillerBonus));
 
       // 展厅展示加成
       if (car.location === 'showroom') {
@@ -1950,28 +1403,14 @@ export default function App() {
       if (isTradeIn) {
         finalConv = Math.min(0.95, finalConv + 0.08);
       }
-      finalConv = Math.max(0.01, Math.min(finalConv, priceReality.closeCap));
 
       if (Math.random() < finalConv) {
+        updatedInventory.splice(randomIdx, 1);
         const dynamicRebate = getDynamicRebate(modelDef.id);
         const dynamicMsrp = getDynamicMsrp(modelDef.id);
-        revenue += car.price;
-        mStats.realRevenue = (mStats.realRevenue || 0) + car.price;
-        nextVirtualSales.monthlyActual = (nextVirtualSales.monthlyActual || 0) + 1;
-        if (useVirtualCar) {
-          nextVirtualSales.virtualCars = nextVirtualSales.virtualCars.filter(vc => vc.id !== car.id);
-          soldCarsSummary[`${modelDef.name}虚出消化(${car.color || '黑'})`] = (soldCarsSummary[`${modelDef.name}虚出消化(${car.color || '黑'})`] || 0) + 1;
-          currentLogs.push({ day: day + 1, type: 'success', message: `✅【虚出消化】${modelDef.name} 一台虚出车被真实客户买走，回款 ${formatMoney(car.price)}，不重复计入销量、返利和成本。` });
-        } else {
-          updatedInventory.splice(randomIdx, 1);
-          cogs += modelDef.baseCost;
-          mStats.realCogs = (mStats.realCogs || 0) + modelDef.baseCost;
-          rebates += dynamicRebate;
-          mStats.realRebate = (mStats.realRebate || 0) + dynamicRebate;
-          stats.sales++;
-          mStats.sales++;
-          soldCarsSummary[`${modelDef.name}(${car.color || '黑'})`] = (soldCarsSummary[`${modelDef.name}(${car.color || '黑'})`] || 0) + 1;
-        }
+        revenue += car.price; cogs += modelDef.baseCost; rebates += dynamicRebate;
+        stats.sales++; mStats.sales++;
+        soldCarsSummary[`${modelDef.name}(${car.color || '黑'})`] = (soldCarsSummary[`${modelDef.name}(${car.color || '黑'})`] || 0) + 1;
 
         // === 金融按揭佣金 ===
         if (Math.random() < 0.70) {
@@ -1993,7 +1432,7 @@ export default function App() {
           dailyUsedCarPurchaseCost += purchasePrice;
           const tradeInSubsidy = 5000;
           dailyTradeInSubsidy += tradeInSubsidy;
-          if (!useVirtualCar) rebates += tradeInSubsidy;
+          rebates += tradeInSubsidy;
           const usedCarBrands = ['大众帕萨特', '本田雅阁', '丰田凯美瑞', '别克君威', '日产天籁', '福特蒙迪欧'];
           const brand = usedCarBrands[Math.floor(Math.random() * usedCarBrands.length)];
           newSoldVehicles.push({ type: 'usedCar', brand, purchasePrice, retailPrice: Math.round(purchasePrice * 1.2) });
@@ -2016,7 +1455,7 @@ export default function App() {
 
         // 记录售出车辆（用于售后/续保追踪）
         newSoldVehicles.push({ type: 'newCar', modelId: modelDef.id, modelName: modelDef.name, soldDay: day + 1 });
-      } else if (!useVirtualCar && finalConv >= 0.18 && Math.random() < 0.28 && nextApprovalCases.filter(item => item.type === 'price').length < 2) {
+      } else if (finalConv >= 0.18 && Math.random() < 0.28 && nextApprovalCases.filter(item => item.type === 'price').length < 2) {
         const approvalCase = createPriceApprovalCase(car, modelDef, finalConv);
         nextApprovalCases.push(approvalCase);
         currentLogs.push({ day: day + 1, type: 'info', message: `🧾【价格审批】${modelDef.name} 客户要求总经理批价 ${formatMoney(approvalCase.requestedPrice)}，已进入审批中心。` });
@@ -2272,7 +1711,6 @@ export default function App() {
       setGameState('bankrupt');
       currentLogs.push({ day: day + 1, type: 'expense', message: `【破产警告】二手车收购与当日经营支出导致贷款超额 (超 ${formatMoney(f.creditLimit)})，资金链断裂！` });
       setFinance(f); setLogs(prev => [...prev, ...currentLogs]);
-      setIsAdvancingDay(false);
       return;
     }
 
@@ -2417,13 +1855,12 @@ export default function App() {
         stockList: updatedInventory,
         csiScore: newCsiScore,
         lostCount: lostMembers.length,
-        overdueDraftCount: (nextDrafts.activeDrafts || []).filter(d => d.status === 'defaulted').length,
       });
       const score = investorReview.score;
       const trustDelta = score >= 86 ? 12 : score >= 72 ? 5 : score >= 60 ? -4 : score >= 45 ? -12 : -22;
-      const nextBadReviews = score < 60 ? nextInvestorRelations.badReviews + 1 : Math.max(0, nextInvestorRelations.badReviews - 1);
+      const nextBadReviews = score < 60 ? investorRelations.badReviews + 1 : Math.max(0, investorRelations.badReviews - 1);
       let nextBudgetStatus = '正常授权';
-      let nextOrderRestrictionUntil = nextInvestorRelations.orderRestrictionUntil;
+      let nextOrderRestrictionUntil = investorRelations.orderRestrictionUntil;
       if (score >= 86) {
         const extraCredit = activeInvestor.budgetStyle === 'growth' || activeInvestor.id === 'gambler' ? 1800000 : 900000;
         f.creditLimit += extraCredit;
@@ -2437,17 +1874,16 @@ export default function App() {
         nextBudgetStatus = '谨慎授权';
         nextOrderRestrictionUntil = day + 16;
       }
-      nextInvestorRelations = {
-        ...nextInvestorRelations,
-        trust: Math.max(0, Math.min(100, nextInvestorRelations.trust + trustDelta)),
+      setInvestorRelations(prev => ({
+        ...prev,
+        trust: Math.max(0, Math.min(100, prev.trust + trustDelta)),
         badReviews: nextBadReviews,
         lastScore: score,
         lastGrade: investorReview.grade,
         lastComment: investorReview.comment,
         budgetStatus: nextBudgetStatus,
         orderRestrictionUntil: nextOrderRestrictionUntil,
-      };
-      setInvestorRelations(nextInvestorRelations);
+      }));
       currentLogs.push({
         day: day + 1,
         type: score >= 72 ? 'success' : score >= 60 ? 'warning' : 'expense',
@@ -2471,11 +1907,6 @@ export default function App() {
         settlementCreditLimit: f.creditLimit,
         stockList: updatedInventory,
       });
-      nextGmWealth.yearlyNetProfit = (nextGmWealth.yearlyNetProfit || 0) + investorReview.monthNetProfit;
-      nextGmWealth.investorScoreHistory = [...(nextGmWealth.investorScoreHistory || []), score].slice(-12);
-      if (investorReview.monthNetProfit <= 0) {
-        nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 3);
-      }
       currentLogs.push({
         day: day + 1,
         type: monthlyFeedbackReport.score >= 70 ? 'success' : monthlyFeedbackReport.score >= 58 ? 'warning' : 'expense',
@@ -2502,131 +1933,9 @@ export default function App() {
         currentLogs.push({ day: day + 1, type: 'expense', message: '💼【被解聘】连续三次投资人差评，董事会决定更换运营总经理。游戏失败。' });
       }
 
-      const floatingCars = (nextVirtualSales.virtualCars || []).filter(car => (month - (car.virtualMonth || month)) >= 3);
-      if (floatingCars.length > 0) {
-        const floatingCost = Math.round(floatingCars.reduce((sum, car) => sum + (car.costPrice || 0) * 0.005, 0));
-        f.cash -= floatingCost;
-        mStats.financeCost += floatingCost;
-        mStats.floatingCost = (mStats.floatingCost || 0) + floatingCost;
-        nextVirtualSales.suspicionLevel = Math.min(100, (nextVirtualSales.suspicionLevel || 0) + floatingCars.length * 3);
-        todayLedger.push({ label: `虚出浮库资金占用费(${floatingCars.length}台)`, amount: -floatingCost, type: 'expense' });
-        currentLogs.push({ day: day + 1, type: 'warning', message: `⚠️【浮库压力】${floatingCars.length}台虚出车超过3个月未真实售出，产生资金占用费 ${formatMoney(floatingCost)}，厂家怀疑度上升。` });
-        if (floatingCars.length > 5) nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 10);
-      }
-
-      const suspicionLevel = nextVirtualSales.suspicionLevel || 0;
-      const auditChance = suspicionLevel >= 100 ? 1 : 0.05 + (suspicionLevel * 0.005);
-      if ((nextVirtualSales.virtualCars || []).length > 0 && Math.random() < auditChance) {
-        const caughtCount = (nextVirtualSales.caughtCount || 0) + 1;
-        const penaltyMult = caughtCount === 1 ? 2 : caughtCount === 2 ? 3 : 5;
-        const penalty = Math.round((nextVirtualSales.rebateEarnedFromVirtual || 0) * penaltyMult);
-        f.cash -= penalty;
-        mStats.financeCost += penalty;
-        mStats.manufacturerPenalty = (mStats.manufacturerPenalty || 0) + penalty;
-        nextVirtualSales.caughtCount = caughtCount;
-        nextVirtualSales.penaltyPaid = (nextVirtualSales.penaltyPaid || 0) + penalty;
-        nextVirtualSales.suspicionLevel = Math.min(100, (nextVirtualSales.suspicionLevel || 0) + 20);
-        nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 25);
-        todayLedger.push({ label: `厂家虚出稽核罚款(第${caughtCount}次)`, amount: -penalty, type: 'expense' });
-        currentLogs.push({ day: day + 1, type: 'expense', message: `🚨【厂家稽核】虚出车辆被厂家抽查发现，第${caughtCount}次处罚，罚款 ${formatMoney(penalty)}，GM士气大幅下降。` });
-      } else {
-        nextVirtualSales.suspicionLevel = Math.max(0, (nextVirtualSales.suspicionLevel || 0) - ((nextVirtualSales.monthlyVirtual || 0) > 0 ? 0 : 3));
-      }
-
-      if (f.cash < 0) {
-        f.loan += Math.abs(f.cash);
-        f.cash = 0;
-      }
-
-      const brandBuckets = { bmw: 0, benz: 0, ev: 0, audiLocal: 0 };
-      const marketIntel = [];
-      nextCompetitors.stores = (nextCompetitors.stores || []).map(store => {
-        let nextStore = { ...store };
-        const baseSales = store.brand === 'ev' ? 20 : store.brand === 'audi_local' ? 16 : 18;
-        const activitySalesBoost = store.currentActivity ? 1.25 : 1;
-        const priceSalesBoost = Math.min(1.5, 1 + Math.max(0, 1 - (store.priceIndex || 1)) * 2.2);
-        const monthlySales = Math.max(3, Math.round(baseSales * ((store.customerPull || 55) / 60) * activitySalesBoost * priceSalesBoost * (0.75 + Math.random() * 0.55)));
-        nextStore.monthlySales = monthlySales;
-        const brandKey = store.brand === 'audi_local' ? 'audiLocal' : store.brand;
-        if (brandBuckets[brandKey] !== undefined) brandBuckets[brandKey] += monthlySales;
-
-        const strategy = store.strategy || 'aggressive';
-        const relationPenalty = store.brand === 'audi_local' ? (nextStore.relationship < 40 ? 0.16 : nextStore.relationship >= 70 ? -0.08 : 0) : 0;
-        const discountChance = (strategy === 'aggressive' ? 0.32 : strategy === 'digital' ? 0.16 : 0.12) + relationPenalty;
-        const activityChance = strategy === 'service' ? 0.28 : strategy === 'digital' ? 0.24 : 0.14;
-        const digitalChance = store.brand === 'ev' || strategy === 'digital' ? 0.32 : 0.08;
-        if (Math.random() < discountChance) {
-          const cut = 0.03 + Math.random() * (store.brand === 'audi_local' ? 0.08 : 0.06);
-          const tacitFloor = store.brand === 'audi_local' && (nextStore.relationship || 50) >= 40 ? 0.85 : 0.80;
-          nextStore.priceIndex = Math.max(tacitFloor, (nextStore.priceIndex || 1) - cut);
-          nextStore.activityLevel = Math.min(100, (nextStore.activityLevel || 0) + 24);
-	          nextStore.currentActivity = { type: 'discount', effect: '客户分流', pullBoost: Math.round(16 + cut * 180), remainingDays: 7 + Math.floor(Math.random() * 12) };
-	          nextStore.lastAction = `限时降价，优惠力度扩大${Math.round(cut * 100)}%`;
-	          nextStore.isVisible = true;
-	          marketIntel.push(`${nextStore.name}开始降价促销，预计会分流到店客户。`);
-          if (store.brand === 'audi_local') {
-            const playerCutting = (nextCompetitors.playerCountermeasures || []).some(item => item.type === 'price' || item.type === 'price_war');
-            nextStore.priceWarCount = playerCutting ? (nextStore.priceWarCount || 0) + 1 : nextStore.priceWarCount || 0;
-            nextStore.relationship = Math.max(0, (nextStore.relationship || 50) - (playerCutting ? 15 : 10));
-            if (playerCutting) {
-              nextCompetitors.priceWarActive = true;
-              nextCompetitors.priceWarRound = (nextCompetitors.priceWarRound || 0) + 1;
-              marketIntel.push(`${nextStore.name}与本店互相降价，本品价格战升级。`);
-            }
-          }
-        } else if (Math.random() < activityChance) {
-	          nextStore.activityLevel = Math.min(100, (nextStore.activityLevel || 0) + 18);
-	          nextStore.currentActivity = { type: 'event', effect: '活动截流', pullBoost: 18, remainingDays: 4 + Math.floor(Math.random() * 4) };
-	          nextStore.lastAction = store.brand === 'benz' ? '举办高端品鉴会' : '举办试驾/车主活动';
-	          nextStore.isVisible = true;
-	          marketIntel.push(`${nextStore.name}${nextStore.lastAction}。`);
-	        } else if (Math.random() < digitalChance) {
-	          nextStore.activityLevel = Math.min(100, (nextStore.activityLevel || 0) + 16);
-	          nextStore.currentActivity = { type: 'digital', effect: '线上线索截流', pullBoost: 14, remainingDays: 3 + Math.floor(Math.random() * 5) };
-	          nextStore.lastAction = '加大直播和线上限时优惠';
-	          nextStore.isVisible = true;
-	          marketIntel.push(`${nextStore.name}正在强化线上获客。`);
-        } else {
-          nextStore.activityLevel = Math.max(0, (nextStore.activityLevel || 0) - 8);
-          nextStore.lastAction = '常规经营';
-        }
-        return nextStore;
-      });
-      const playerSalesForShare = Math.max(0, mStats.sales || 0);
-      const totalReportedSales = playerSalesForShare + brandBuckets.bmw + brandBuckets.benz + brandBuckets.ev + brandBuckets.audiLocal;
-      const denominator = Math.max(nextCompetitors.totalMarketSize || 200, totalReportedSales);
-      const otherSales = Math.max(0, denominator - totalReportedSales);
-      nextCompetitors.lastMarketShare = nextCompetitors.marketShare;
-      nextCompetitors.marketShare = normalizeMarketShare({
-        audi: Math.round((playerSalesForShare / denominator) * 1000) / 10,
-        bmw: Math.round((brandBuckets.bmw / denominator) * 1000) / 10,
-        benz: Math.round((brandBuckets.benz / denominator) * 1000) / 10,
-        ev: Math.round((brandBuckets.ev / denominator) * 1000) / 10,
-        audiLocal: Math.round((brandBuckets.audiLocal / denominator) * 1000) / 10,
-        other: Math.round((otherSales / denominator) * 1000) / 10,
-      });
-      nextCompetitors.playerMonthlySales = playerSalesForShare;
-      const newIntel = marketIntel.slice(0, 6).map(content => ({ month, day: dayOfMonth, source: '市场情报组', content, reliability: '可靠' }));
-      if (newIntel.length > 0) {
-        nextCompetitors.intelHistory = [...newIntel, ...(nextCompetitors.intelHistory || [])].slice(0, 20);
-        currentLogs.push({ day: day + 1, type: 'warning', message: `🌐【竞品月报】${newIntel.map(item => item.content).join(' ')}` });
-      }
-      if (nextCompetitors.priceWarActive) {
-        const round = nextCompetitors.priceWarRound || 1;
-        const fine = round >= 3 ? 180000 : round >= 2 ? 80000 : 0;
-        mStats.financeCost += fine;
-        mStats.manufacturerPenalty = (mStats.manufacturerPenalty || 0) + fine;
-        f.cash -= fine;
-        if (fine > 0) todayLedger.push({ label: `厂家价格战干预罚款(第${round}轮)`, amount: -fine, type: 'expense' });
-        currentLogs.push({ day: day + 1, type: fine > 0 ? 'expense' : 'warning', message: `🌐【本品价格战】同城奥迪互相降价，第${round}轮：毛利和转化承压，${fine > 0 ? `厂家罚款 ${formatMoney(fine)}。` : '厂家已发出价格秩序警告。'}` });
-        if (round >= 3) nextCompetitors.priceWarActive = false;
-      }
-
-      const nextMonthTarget = Math.max(8, Math.round((Math.max(10, Math.floor(mStats.sales * 1.1) + 2)) * activeDifficulty.targetMultiplier));
       mStats = {
-        target: nextMonthTarget,
+        target: Math.max(10, Math.floor(mStats.sales * 1.1) + 2),
         sales: 0, leads: 0, walkIns: 0, dccWalkIns: 0, naturalWalkIns: 0, baseRebatesPool: 0, revenue: 0, cogs: 0, derivativeRevenue: 0, derivativeCost: 0, rent: 0, depreciation: 0, labor: 0, financeCost: 0, marketingCost: 0, storageCost: 0,
-        realRevenue: 0, realCogs: 0, realRebate: 0, virtualRevenue: 0, virtualCogs: 0, virtualRebate: 0, draftBankFee: 0, draftPenalty: 0, floatingCost: 0, manufacturerPenalty: 0,
         lastMonthPayout: finalPayout, lastMonthAchieve: achieveRate, lastMonthRevenue: mStats.revenue, lastMonthProcessPassed: processPassed,
         activitySpend: 0, recoveredLeads: 0,
         afterSalesRevenue: 0, afterSalesCost: 0, afterSalesReturnVisits: 0, financeCommission: 0, tradeInCount: 0, tradeInSubsidy: 0,
@@ -2634,65 +1943,8 @@ export default function App() {
         usedCarRevenue: 0, usedCarCost: 0, usedCarPrepCost: 0,
         lastInvestorScore: score, lastInvestorGrade: investorReview.grade, lastInvestorComment: investorReview.comment,
       };
-      nextVirtualSales.monthlyTarget = nextMonthTarget;
-      nextVirtualSales.monthlyActual = 0;
-      nextVirtualSales.monthlyVirtual = 0;
-
-      const nextMonthNo = month + 1;
-      if (nextMonthNo % 12 === 1 && nextMonthNo > 1) {
-        const yearlyProfit = nextGmWealth.yearlyNetProfit || 0;
-        const scoreList = nextGmWealth.investorScoreHistory || [];
-        const avgInvestorScore = scoreList.length > 0 ? scoreList.reduce((sum, item) => sum + item, 0) / scoreList.length : 0;
-        const dividendRate = avgInvestorScore >= 85 ? 0.12 : avgInvestorScore >= 70 ? 0.08 : avgInvestorScore >= 55 ? 0.05 : 0;
-        const dividendAmount = yearlyProfit > 0 ? Math.floor(yearlyProfit * dividendRate) : 0;
-        nextGmWealth.dividendRate = dividendRate;
-        if (dividendAmount > 0 && f.cash >= dividendAmount) {
-          f.cash -= dividendAmount;
-          nextGmWealth.personalAccount = (nextGmWealth.personalAccount || 0) + dividendAmount;
-          nextGmWealth.totalDividend = (nextGmWealth.totalDividend || 0) + dividendAmount;
-          nextGmWealth.totalEarned = (nextGmWealth.totalEarned || 0) + dividendAmount;
-          nextGmWealth.morale = Math.min(100, (nextGmWealth.morale || 80) + (dividendAmount >= 300000 ? 10 : 5));
-          todayLedger.push({ label: `GM年度分红(${Math.round(dividendRate * 100)}%)`, amount: -dividendAmount, type: 'expense' });
-          currentLogs.push({ day: day + 1, type: 'success', message: `💰【年度分红】年度净利润 ${formatMoney(yearlyProfit)}，投资人平均分 ${avgInvestorScore.toFixed(1)}，GM获得分红 ${formatMoney(dividendAmount)}。` });
-        } else {
-          nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 10);
-          currentLogs.push({ day: day + 1, type: 'warning', message: `💰【年度分红】年度净利润 ${formatMoney(yearlyProfit)}，投资人平均分 ${avgInvestorScore.toFixed(1)}，本年无可发放分红。` });
-        }
-        const annualDraftDelta = Math.round(
-          (yearlyProfit > 0 ? 400000 : -300000) +
-          (avgInvestorScore >= 80 ? 400000 : avgInvestorScore >= 65 ? 150000 : -250000) +
-          ((nextDrafts.bankReputation || 70) >= 80 ? 300000 : (nextDrafts.bankReputation || 70) < 45 ? -500000 : 0) -
-          Math.min(800000, nextDrafts.totalDraftsDefaulted || 0)
-        );
-        nextDrafts.creditLimit = Math.max(nextDrafts.creditUsed || 0, Math.max(500000, Math.min(6000000, (nextDrafts.creditLimit || 1500000) + annualDraftDelta)));
-        currentLogs.push({ day: day + 1, type: annualDraftDelta >= 0 ? 'success' : 'warning', message: `🏦【年度汇票授信评估】银行结合年度利润、投资人评分和信用记录，将汇票额度调整 ${annualDraftDelta >= 0 ? '+' : ''}${formatMoney(annualDraftDelta)}，新额度 ${formatMoney(nextDrafts.creditLimit)}。` });
-        nextGmWealth.yearlyNetProfit = 0;
-        nextGmWealth.investorScoreHistory = [];
-      }
-
-      const gmSalaryPaid = Math.max(766, Math.min(60000, Math.round(nextGmWealth.monthlySalary || 25000)));
-      f.cash -= gmSalaryPaid;
-      nextGmWealth.personalAccount = (nextGmWealth.personalAccount || 0) + gmSalaryPaid;
-      nextGmWealth.totalEarned = (nextGmWealth.totalEarned || 0) + gmSalaryPaid;
-      if (nextGmWealth.personalAccount < 10000) {
-        nextGmWealth.morale = Math.max(0, (nextGmWealth.morale || 80) - 10);
-      }
-      mStats.labor += gmSalaryPaid;
-      todayLedger.push({ label: 'GM月薪发放', amount: -gmSalaryPaid, type: 'expense' });
-      currentLogs.push({ day: day + 1, type: 'info', message: `💼【GM月薪】新月发放总经理月薪 ${formatMoney(gmSalaryPaid)}，已从公司现金转入个人账户。` });
-      if (f.cash < 0) {
-        f.loan += Math.abs(f.cash);
-        f.cash = 0;
-        currentLogs.push({ day: day + 1, type: 'warning', message: `🏦【薪资垫贷】发放GM月薪后现金不足，自动使用银行库存融资垫付。` });
-      }
-      if (f.loan > f.creditLimit) {
-        setGameState('bankrupt');
-        terminalStop = true;
-        currentLogs.push({ day: day + 1, type: 'expense', message: `【破产警告】GM薪资发放后融资超额，资金链断裂。` });
-      }
 
       // === 厂家商务政策月度更新 ===
-      if (!terminalStop) {
       const newPolicyMonth = manufacturerPolicy.policyMonth + 1;
       let newRebateMult = manufacturerPolicy.rebateMultiplier;
       let newMsrpTrend = manufacturerPolicy.msrpTrend;
@@ -2771,22 +2023,9 @@ export default function App() {
         title: `M${newPolicyMonth}月市场月报`,
         body: `${newMarketEnvironment.seasonName}，需求指数×${newMarketEnvironment.seasonIndex.toFixed(2)}。${newMarketEnvironment.competitorEvent.desc} ${newMarketEnvironment.supplyChain.desc}`,
       });
-      }
     }
 
-    if (!terminalStop && (nextGmWealth.outstandingBailout || 0) > 0) {
-      const safeCashFloor = Math.round(dailyExpenses * 45);
-      const repayable = Math.min(nextGmWealth.outstandingBailout, Math.max(0, f.cash - safeCashFloor));
-      if (repayable > 0) {
-        f.cash -= repayable;
-        nextGmWealth.personalAccount = (nextGmWealth.personalAccount || 0) + repayable;
-        nextGmWealth.outstandingBailout = Math.max(0, (nextGmWealth.outstandingBailout || 0) - repayable);
-        todayLedger.push({ label: '归还GM垫资', amount: -repayable, type: 'expense' });
-        currentLogs.push({ day: day + 1, type: 'success', message: `💼【垫资归还】公司现金覆盖超过安全线，自动归还GM垫资 ${formatMoney(repayable)}。` });
-      }
-    }
-
-    if (!terminalStop && f.loan > f.creditLimit * 0.85 && (day + 1) % 5 === 0) {
+    if (f.loan > f.creditLimit * 0.85 && (day + 1) % 5 === 0) {
       inboxItems.push({
         id: `inbox_credit_${day + 1}`,
         day: day + 1,
@@ -2796,44 +2035,22 @@ export default function App() {
       });
     }
 
-    // === 剧本终局判定 ===
-    if (!terminalStop && !isFreeScenario && day + 1 >= scenarioDurationDays && gameState !== 'bankrupt' && !dismissedByInvestor) {
+    // === 胜利判定：经营满6个月(180天) ===
+    if (day + 1 >= 180 && gameState !== 'bankrupt' && !dismissedByInvestor) {
       const totalAssets = f.cash + updatedInventory.reduce((sum, car) => {
         const modelDef = CAR_MODELS.find(m => m.id === car.modelId);
         return sum + (modelDef ? modelDef.baseCost * 0.9 : 0); // 库存按成本90%估值
-      }, 0) + finalUsedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + c.purchasePrice * (usedCarShowroom.built ? 0.9 : 0.8), 0); // 二手车按收车价估值(有展厅90%，无展厅80%)
-      const draftLiabilities = (nextDrafts.activeDrafts || [])
-        .filter(d => d.status === 'active' || d.status === 'defaulted')
-        .reduce((sum, d) => sum + (d.status === 'active' ? d.amount : (d.overduePrincipal || 0)), 0);
-      const totalLiabilities = f.loan + draftLiabilities + (nextGmWealth.outstandingBailout || 0);
-      const netAssets = totalAssets - totalLiabilities;
-      const excellentMonths = (feedback.ratingHistory || []).filter(item => (item.score || 0) >= 82 || (item.investorScore || 0) >= 82).length + (monthlyFeedbackReport && ((monthlyFeedbackReport.score || 0) >= 82 || (monthlyFeedbackReport.investorScore || 0) >= 82) ? 1 : 0);
-      const passedScenario = activeScenario.id === 'survive6'
-        ? netAssets >= activeScenario.targetNetAssets * 0.75 && nextInvestorRelations.badReviews < 3
-        : activeScenario.id === 'star12'
-        ? netAssets >= activeScenario.targetNetAssets && excellentMonths >= (activeScenario.minExcellentMonths || 3)
-        : netAssets >= activeScenario.targetNetAssets;
-      const endingRank = !passedScenario ? 'failed' : netAssets >= 6000000 && excellentMonths >= 4 ? 'regional_star' : netAssets >= 4500000 || excellentMonths >= 3 ? 'excellent' : 'renewed';
-      nextEndingSummary = {
-        rank: endingRank,
-        scenarioName: activeScenario.name,
-        difficultyName: activeDifficulty.name,
-        day: day + 1,
-        netAssets,
-        totalAssets,
-        loan: f.loan,
-        liabilities: totalLiabilities,
-        excellentMonths,
-      };
-      setEndingSummary(nextEndingSummary);
-      setEndingModalDismissed(false);
-      if (passedScenario) {
+      }, 0) + usedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + c.purchasePrice * (usedCarShowroom.built ? 0.9 : 0.8), 0); // 二手车按收车价估值(有展厅90%，无展厅80%)
+      const netAssets = totalAssets - f.loan;
+      const startAssets = 3000000; // 初始资金
+      if (netAssets >= startAssets * 2) {
+        // 净资产翻倍 → 完胜
         setGameState('won');
-        currentLogs.push({ day: day + 1, type: 'success', message: `【剧本达成】${activeScenario.name}结束，净资产${formatMoney(netAssets)}，优秀月评${excellentMonths}次，董事会决定续约。` });
-      } else {
-        setGameState('dismissed');
-        dismissedByInvestor = true;
-        currentLogs.push({ day: day + 1, type: 'expense', message: `【剧本失败】${activeScenario.name}结束，净资产${formatMoney(netAssets)}，优秀月评${excellentMonths}次，未达到董事会目标。` });
+        currentLogs.push({ day: day + 1, type: 'success', message: `🏆【经营完胜】半年经营结束！总资产 ${formatMoney(totalAssets)} - 负债 ${formatMoney(f.loan)} = 净资产 ${formatMoney(netAssets)}，较初始资金翻倍！您是卓越的4S店总经理！` });
+      } else if (netAssets >= startAssets) {
+        // 净资产正增长 → 合格
+        setGameState('won');
+        currentLogs.push({ day: day + 1, type: 'success', message: `🎓【经营合格】半年经营结束！净资产 ${formatMoney(netAssets)}，守住了基本盘。经营稳健，但还有进步空间！` });
       }
     }
 
@@ -2853,24 +2070,10 @@ export default function App() {
       });
     }
 
-    setFinance(f); setDrafts(nextDrafts); setGmWealth(nextGmWealth); setVirtualSales(nextVirtualSales); setCompetitors(nextCompetitors); setMarketing(m); setMonthlyStats(mStats); setInventory(updatedInventory);
+    setFinance(f); setMarketing(m); setMonthlyStats(mStats); setInventory(updatedInventory);
     setMarketPrices(newMarketPrices); setDailyStats(stats); setLogs(prev => [...prev, ...currentLogs]); setManagerInbox(prev => [...prev, ...inboxItems]); setApprovalCases(nextApprovalCases); setCustomerDeals(nextCustomerDeals); setFeedback(nextFeedback); setDay(day + 1);
     setPendingOrders(remainingOrders);
     setDailyLedger(prev => [...prev, { day: day + 1, items: todayLedger }]);
-    if (monthlyFeedbackReport) {
-      setMonthlySummaryModal({
-        month: monthlyFeedbackReport.month,
-        day: day + 1,
-        headline: monthlyFeedbackReport.headline,
-        score: monthlyFeedbackReport.score,
-        investorScore: monthlyFeedbackReport.investorScore,
-        payout: monthlyFeedbackReport.payout,
-        creditLimit: f.creditLimit,
-        draftCreditLimit: nextDrafts.creditLimit,
-        policy: newManufacturerPolicy.lastChange || '标准商务政策延续',
-      });
-    }
-    setIsAdvancingDay(false);
     // 更新员工状态（处理离职）
     setStaff(s => ({
       ...s,
@@ -2893,19 +2096,9 @@ export default function App() {
 
     // 自动存档（每天结束时，存到自动存档槽——直接用本轮计算的新值）
     try {
-      const autoTotalAssets = f.cash + updatedInventory.reduce((sum, car) => sum + (CAR_MODELS.find(cm => cm.id === car.modelId)?.baseCost || 0) * 0.9, 0) + finalUsedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + c.purchasePrice * (usedCarShowroom.built ? 0.9 : 0.8), 0);
-      const autoDraftLiabilities = (nextDrafts.activeDrafts || [])
-        .filter(d => d.status === 'active' || d.status === 'defaulted')
-        .reduce((sum, d) => sum + (d.status === 'active' ? d.amount : (d.overduePrincipal || 0)), 0);
-      const autoNetAssets = autoTotalAssets - f.loan - autoDraftLiabilities - (nextGmWealth.outstandingBailout || 0);
-      const autoExcellentMonths = (nextFeedback.ratingHistory || []).filter(item => (item.score || 0) >= 82 || (item.investorScore || 0) >= 82).length;
-      const autoScenarioPassed = activeScenario.id === 'survive6'
-        ? autoNetAssets >= activeScenario.targetNetAssets * 0.75 && nextInvestorRelations.badReviews < 3
-        : activeScenario.id === 'star12'
-        ? autoNetAssets >= activeScenario.targetNetAssets && autoExcellentMonths >= (activeScenario.minExcellentMonths || 3)
-        : autoNetAssets >= activeScenario.targetNetAssets;
-      const newGameState = dismissedByInvestor ? 'dismissed' : (!isFreeScenario && day + 1 >= scenarioDurationDays && gameState !== 'bankrupt') ?
-        (autoScenarioPassed ? 'won' : 'dismissed') : (f.loan > f.creditLimit ? 'bankrupt' : gameState);
+      const newGameState = dismissedByInvestor ? 'dismissed' : (day + 1 >= 180 && gameState !== 'bankrupt') ?
+        ((f.cash + updatedInventory.reduce((sum, car) => sum + (CAR_MODELS.find(cm => cm.id === car.modelId)?.baseCost || 0) * 0.9, 0) + finalUsedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + c.purchasePrice * (usedCarShowroom.built ? 0.9 : 0.8), 0) - f.loan) >= 3000000 * 2 ? 'won' :
+        ((f.cash + updatedInventory.reduce((sum, car) => sum + (CAR_MODELS.find(cm => cm.id === car.modelId)?.baseCost || 0) * 0.9, 0) + finalUsedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + c.purchasePrice * (usedCarShowroom.built ? 0.9 : 0.8), 0) - f.loan) >= 3000000 ? 'won' : gameState)) : (f.loan > f.creditLimit ? 'bankrupt' : gameState);
       const newCsiObj = { ...csi, score: newCsiScore, complaints: csi.complaints + (complaintOccurred ? 1 : 0) + expiredComplaintCount };
       const newInsRenewals = { pending: renewalEligible.length, renewed: insuranceRenewals.renewed + (dailyInsRevenue > 0 ? 1 : 0), revenue: insuranceRenewals.revenue + dailyInsRevenue };
       const newStaffObj = {
@@ -2921,8 +2114,8 @@ export default function App() {
         slotName: '自动存档',
         gameState: newGameState,
         day: day + 1,
-        dealerRegionId, marketSizeId: activeMarketSize.id, investorProfileId, investorRelations: nextInvestorRelations,
-        finance: f, drafts: nextDrafts, gmWealth: nextGmWealth, virtualSales: nextVirtualSales, competitors: nextCompetitors, strategy, marketPrices: newMarketPrices, modelPriceOverrides, marketEnvironment: newMarketEnvironment, manufacturerPolicy: newManufacturerPolicy,
+        dealerRegionId, investorProfileId, investorRelations,
+        finance: f, strategy, marketPrices: newMarketPrices, modelPriceOverrides, marketEnvironment: newMarketEnvironment, manufacturerPolicy: newManufacturerPolicy,
         marketing: m, staff: newStaffObj, afterSales: newAfterSalesObj, usedCarShowroom, usedCars: finalUsedCars, testDriveCars, csi: newCsiObj,
         insuranceRenewals: newInsRenewals, soldVehicles: updatedSoldVehicles, monthlyStats: mStats, facility,
         inventory: updatedInventory, pendingOrders: remainingOrders,
@@ -2930,7 +2123,7 @@ export default function App() {
         managerInbox: [...managerInbox, ...inboxItems],
         approvalCases: nextApprovalCases,
         customerDeals: nextCustomerDeals,
-        feedback: nextFeedback, difficultyMode, scenarioId, tutorial, endingSummary: nextEndingSummary,
+        feedback: nextFeedback,
         logs: [...logs, ...currentLogs],
       };
       const allSlots = getSaveSlots();
@@ -2972,8 +2165,7 @@ export default function App() {
   };
 
   const executeOrder = () => {
-    const { model, quantity, color } = orderForm;
-    const paymentMethod = orderForm.paymentMethod || (orderForm.useLoan ? 'draft3' : 'cash');
+    const { model, quantity, color, useLoan } = orderForm;
     if (investorRelations.orderRestrictionUntil >= day && quantity > 2) {
       return showAlert('投资人限制订车', `当前预算状态为「${investorRelations.budgetStatus}」，D${((investorRelations.orderRestrictionUntil - 1) % 30) + 1}前单次订车不得超过2台。`);
     }
@@ -2983,61 +2175,19 @@ export default function App() {
 
     let f = { ...finance };
     const totalCost = model.baseCost * quantity;
-    let nextDrafts = { ...drafts, activeDrafts: [...(drafts.activeDrafts || [])] };
-    let draftId = null;
-    let cashOut = totalCost;
-    let ledgerLabel = `厂家订车付款(${model.name} ×${quantity})`;
-    if (paymentMethod === 'cash') {
+    if (!useLoan) {
       if (f.cash < totalCost) return showAlert("资金不足", "自有现金不足，请减少数量或选择使用库存融资！");
       f.cash -= totalCost;
-    } else if (paymentMethod === 'loan') {
-      const availableLoanCredit = Math.max(0, (f.creditLimit || 0) - (f.loan || 0));
-      if (totalCost > availableLoanCredit) {
-        return showAlert("库存融资授信不足", `本次库存融资需要 ${formatMoney(totalCost)}，当前库存融资授信可用 ${formatMoney(availableLoanCredit)}。`);
-      }
-      f.loan = (f.loan || 0) + totalCost;
-      cashOut = 0;
-      ledgerLabel = `银行库存融资采购(${model.name} ×${quantity})`;
     } else {
-      const term = paymentMethod === 'draft6' ? 6 : 3;
-      const feeRate = getDraftFeeRate(term);
-      const deposit = Math.round(totalCost * 0.2);
-      const bankFee = Math.round(totalCost * feeRate);
-      cashOut = deposit + bankFee;
-      if ((drafts.bankReputation || 70) < 30) return showAlert("银行拒票", "银行信用评分低于30，合作银行暂停开具新汇票，只能现金采购。");
-      if ((drafts.creditUsed || 0) + totalCost > (drafts.creditLimit || 0)) return showAlert("承兑汇票专项授信不足", `本次需占用承兑汇票专项授信 ${formatMoney(totalCost)}，当前可用 ${formatMoney(getAvailableDraftCredit())}。\n\n提示：顶部的 ${formatMoney(finance.creditLimit)} 是库存融资授信，请选择“库存融资”付款方式才会使用那笔额度。`);
-      if (f.cash < cashOut) return showAlert("资金不足", `汇票采购仍需支付保证金和手续费 ${formatMoney(cashOut)}，当前现金不足。`);
-      f.cash -= cashOut;
-      draftId = `draft_${day}_${Math.random().toString(36).slice(2, 8)}`;
-      const dueDate = addMonthsToGameDate(month, dayOfMonth, term);
-      const draft = {
-        id: draftId,
-        amount: totalCost,
-        carModel: model.name,
-        carCount: quantity,
-        costPricePerCar: model.baseCost,
-        issueDate: { month, day: dayOfMonth },
-        dueDate,
-        term,
-        bankFee,
-        deposit,
-        status: 'active',
-        isVirtualCar: false,
-      };
-      nextDrafts.activeDrafts.push(draft);
-      nextDrafts.totalDraftAmount = (nextDrafts.totalDraftAmount || 0) + totalCost;
-      nextDrafts.totalBankFeePaid = (nextDrafts.totalBankFeePaid || 0) + bankFee;
-      nextDrafts.creditUsed = (nextDrafts.creditUsed || 0) + totalCost;
-      setMonthlyStats(prev => ({ ...prev, financeCost: (prev.financeCost || 0) + bankFee, draftBankFee: (prev.draftBankFee || 0) + bankFee }));
-      ledgerLabel = `银行承兑汇票采购(${term}个月·${model.name} ×${quantity})`;
+      if (f.loan + totalCost > f.creditLimit) return showAlert("授信预警", "授信额度不足，银行拒绝贷款！");
+      f.loan += totalCost;
     }
 
     setFinance(f);
-    setDrafts(nextDrafts);
     appendLedger({
-      label: ledgerLabel,
-      amount: paymentMethod === 'loan' ? totalCost : -cashOut,
-      type: paymentMethod === 'loan' ? 'pending' : 'expense'
+      label: useLoan ? `厂家订车融资(${model.name} ×${quantity})` : `厂家订车付款(${model.name} ×${quantity})`,
+      amount: useLoan ? totalCost : -totalCost,
+      type: useLoan ? 'pending' : 'expense'
     });
 
     // 物流周期：基础3-7天，受供应链事件影响
@@ -3051,17 +2201,10 @@ export default function App() {
       color,
       quantity,
       arriveDay,
-      paymentMethod,
-      draftId,
     };
     setPendingOrders(prev => [...prev, newOrder]);
-    const paymentText = paymentMethod === 'cash'
-      ? '现金全款'
-      : paymentMethod === 'loan'
-      ? `库存融资（银行负债增加${formatMoney(totalCost)}）`
-      : `${paymentMethod === 'draft6' ? '6个月' : '3个月'}银行承兑汇票（本次支付${formatMoney(cashOut)}）`;
-    addLog('info', `📋 订购了 ${quantity} 台 ${model.name} (${color}色)，总成本 ${formatMoney(totalCost)}，使用${paymentText}。预计 ${leadTime} 天后到货(D${((arriveDay - 1) % 30) + 1})。${marketEnvironment.supplyChain.delayDays !== 0 ? `供应链影响：${marketEnvironment.supplyChain.name}` : ''}`);
-    setOrderForm({ isOpen: false, model: null, quantity: 1, color: '黑', paymentMethod: 'draft3' });
+    addLog('info', `📋 订购了 ${quantity} 台 ${model.name} (${color}色)，总成本 ${formatMoney(totalCost)}，${useLoan ? '使用银行融资' : '全款支付'}。预计 ${leadTime} 天后到货(D${((arriveDay - 1) % 30) + 1})。${marketEnvironment.supplyChain.delayDays !== 0 ? `供应链影响：${marketEnvironment.supplyChain.name}` : ''}`);
+    setOrderForm({ isOpen: false, model: null, quantity: 1, color: '黑', useLoan: false });
   };
 
   const handleUpdatePrice = (modelId, newPrice) => {
@@ -3105,7 +2248,6 @@ export default function App() {
     if (mode === 'reject') {
       setCustomerDeals(prev => prev.filter(c => c.id !== caseId));
       addLog('warning', `👤【客户谈判】放弃跟进${item.customerName}，该客户流失。`);
-      showAlert('客户已放弃', `${item.customerName} 的重点客户谈判已关闭，客户流失。`);
       return;
     }
 
@@ -3124,19 +2266,11 @@ export default function App() {
     };
     const config = configs[mode] || configs.balanced;
     const finalPrice = config.price;
-    const referencePrice = Math.min(item.marketPrice || item.competitorPrice || finalPrice, item.competitorPrice || item.marketPrice || finalPrice);
-    const priceReality = getPriceReality(finalPrice, referencePrice, { financeIntent: item.financeIntent, mode });
-    const targetFit = finalPrice <= item.targetPrice
-      ? 0.12
-      : finalPrice <= Math.round(referencePrice * (1 + (item.allowedPremium || priceReality.allowedPremium)))
-      ? 0.03
-      : -0.08;
-    const financeFit = mode === 'finance' ? item.financeIntent * 0.08 : 0;
-    const closeChance = Math.max(0.03, Math.min(priceReality.closeCap, item.baseClose + config.closeAdj + targetFit + financeFit + item.urgency * 0.06 + priceReality.conversionAdj));
+    const priceAcceptance = finalPrice <= item.targetPrice ? 0.14 : finalPrice <= item.currentPrice ? 0.04 : -0.08;
+    const closeChance = Math.max(0.08, Math.min(0.96, item.baseClose + config.closeAdj + priceAcceptance + item.urgency * 0.08));
     if (Math.random() > closeChance) {
       setCustomerDeals(prev => prev.filter(c => c.id !== caseId));
       addLog('warning', `👤【客户谈判失败】${config.label}未打动${item.customerName}（${item.archetypeName}），客户继续观望或转向竞品。`);
-      showAlert('客户未成交', `${config.label}未打动${item.customerName}，本次成交概率约 ${Math.round(closeChance * 100)}%。${priceReality.overAllowed ? `成交价明显高于同城报价，除非销售、口碑和金融方案足够强，否则客户会转向竞品。` : '客户继续观望或转向竞品。'}`);
       return;
     }
 
@@ -3206,7 +2340,6 @@ export default function App() {
     setCustomerDeals(prev => prev.filter(c => c.id !== caseId));
     const grossProfit = finalPrice - modelDef.baseCost + addons.rebate + tradeInSubsidy + addons.derivativeProfit + financeCommission - tradeInPurchaseCost;
     addLog('success', `👤【重点客户成交】${config.label}，${item.customerName}购买${item.modelName}，成交价${formatMoney(finalPrice)}，综合毛利${formatMoney(grossProfit)}${isTradeIn ? '，同步收购置换车' : ''}。`);
-    showAlert('客户成交', `${item.customerName} 已购买 ${item.modelName}。\n成交价：${formatMoney(finalPrice)}\n综合毛利：${formatMoney(grossProfit)}${isTradeIn ? '\n同步收购置换车。' : ''}`);
   };
 
   const handlePriceApproval = (caseId, mode) => {
@@ -3226,9 +2359,7 @@ export default function App() {
     }
 
     const finalPrice = mode === 'requested' ? item.requestedPrice : mode === 'counter' ? item.counterPrice : item.currentPrice;
-    const priceReality = getPriceReality(finalPrice, item.competitorPrice || item.currentPrice);
-    const baseApprovalChance = mode === 'requested' ? 0.88 : mode === 'counter' ? 0.58 : 0.24;
-    const closeChance = Math.max(0.02, Math.min(priceReality.closeCap, baseApprovalChance + priceReality.conversionAdj));
+    const closeChance = mode === 'requested' ? 0.95 : mode === 'counter' ? 0.68 : 0.35;
     const actionLabel = mode === 'requested' ? '同意让利' : mode === 'counter' ? '小幅让利反批' : '坚持原价';
     if (Math.random() > closeChance) {
       setApprovalCases(prev => prev.filter(c => c.id !== caseId));
@@ -3753,177 +2884,6 @@ export default function App() {
     });
   };
 
-  const handlePersonalBailout = (amount) => {
-    const bailoutAmount = Math.floor(amount || 0);
-    if (bailoutAmount < 10000) return showAlert('垫资金额过低', '单次垫资至少 ¥10,000。');
-    const maxBailout = Math.floor((gmWealth.personalAccount || 0) * 0.9);
-    if (bailoutAmount > maxBailout) return showAlert('个人账户不足', `最多可垫资个人账户的90%，当前上限 ${formatMoney(maxBailout)}。`);
-    showConfirm('确认个人垫资', `确定从个人账户垫资 ${formatMoney(bailoutAmount)} 到公司账户吗？\n这不会计入公司收入，现金流好转后再归还。`, () => {
-      setGmWealth(prev => ({
-        ...prev,
-        personalAccount: prev.personalAccount - bailoutAmount,
-        totalBailout: (prev.totalBailout || 0) + bailoutAmount,
-        outstandingBailout: (prev.outstandingBailout || 0) + bailoutAmount,
-        morale: Math.min(100, (prev.morale || 80) + 5),
-        bailoutHistory: [{ month, amount: bailoutAmount, reason: '经营现金流垫资' }, ...(prev.bailoutHistory || [])].slice(0, 12),
-      }));
-      setFinance(prev => ({ ...prev, cash: prev.cash + bailoutAmount }));
-      appendLedger({ label: 'GM个人垫资入账', amount: bailoutAmount, type: 'income' });
-      addLog('success', `💼【个人垫资】GM个人账户垫资 ${formatMoney(bailoutAmount)}，公司现金流暂时缓一口气。`);
-    });
-  };
-
-  const handleRepayOverdueDraft = (draftId) => {
-    const draft = (drafts.activeDrafts || []).find(item => item.id === draftId && item.status === 'defaulted');
-    if (!draft) return showAlert('未找到逾期汇票', '该汇票可能已经还清或状态已变化。');
-    const due = Math.round((draft.overduePrincipal || 0) + (draft.overduePenalty || 0));
-    if (due <= 0) return showAlert('无需还款', '该汇票没有未结清逾期金额。');
-    if ((finance.cash || 0) < due) return showAlert('现金不足', `还清该逾期汇票需要 ${formatMoney(due)}，当前现金不足。可先回款或由GM垫资。`);
-    showConfirm('确认还清逾期汇票', `本次将支付 ${formatMoney(due)}，包含逾期本金 ${formatMoney(draft.overduePrincipal || 0)} 与罚息 ${formatMoney(draft.overduePenalty || 0)}。`, () => {
-      setFinance(prev => ({ ...prev, cash: prev.cash - due }));
-      setDrafts(prev => ({
-        ...prev,
-        activeDrafts: (prev.activeDrafts || []).map(item => item.id === draftId ? { ...item, status: 'paid', paidDate: { month, day: dayOfMonth }, overduePrincipal: 0, overduePenalty: 0, creditReleased: true } : item),
-        creditUsed: draft.creditReleased ? (prev.creditUsed || 0) : Math.max(0, (prev.creditUsed || 0) - (draft.amount || 0)),
-        totalDraftsPaid: (prev.totalDraftsPaid || 0) + (draft.overduePrincipal || 0),
-        bankReputation: Math.min(100, (prev.bankReputation || 70) + 5),
-      }));
-      appendLedger({ label: `还清逾期汇票(${draft.carModel} ×${draft.carCount})`, amount: -due, type: 'expense' });
-      addLog('success', `🏦【逾期汇票还款】已还清 ${draft.carModel} ${draft.carCount}台对应逾期汇票，支付 ${formatMoney(due)}，银行信用回升。`);
-    });
-  };
-
-  const handleAdjustGmSalary = (delta) => {
-    const oldSalary = gmWealth.monthlySalary || 25000;
-    const nextSalary = Math.max(766, Math.min(60000, Math.round(oldSalary * (1 + delta))));
-    if (nextSalary === oldSalary) return;
-    if (delta > 0) {
-      const currentNetProfit = (monthlyStats.revenue || 0) - (monthlyStats.cogs || 0) + (monthlyStats.baseRebatesPool || 0) - ((monthlyStats.rent || 0) + (monthlyStats.depreciation || 0) + (monthlyStats.labor || 0) + (monthlyStats.marketingCost || 0) + (monthlyStats.financeCost || 0) + (monthlyStats.storageCost || 0));
-      if (currentNetProfit <= 0) return showAlert('暂不能加薪', '本月经营利润尚未转正，投资人不会接受总经理先给自己加薪。');
-    }
-    setGmWealth(prev => ({
-      ...prev,
-      monthlySalary: nextSalary,
-      morale: Math.max(0, Math.min(100, (prev.morale || 80) + (delta > 0 ? 10 : -15))),
-      salaryHistory: [{ month, oldSalary, newSalary: nextSalary, reason: delta > 0 ? '主动加薪' : '主动降薪' }, ...(prev.salaryHistory || [])].slice(0, 12),
-    }));
-    addLog(delta > 0 ? 'success' : 'warning', `💼【GM薪资调整】月薪由 ${formatMoney(oldSalary)} 调整为 ${formatMoney(nextSalary)}。`);
-  };
-
-  const handleVirtualSprint = () => {
-    if (dayOfMonth < 25 || dayOfMonth > 28) return showAlert('时机未到', '月底冲刺仅在每月D25-D28开放。');
-    const entries = Object.entries(virtualPlan)
-      .map(([modelId, qty]) => [modelId, Math.max(0, Math.floor(Number(qty) || 0))])
-      .filter(([, qty]) => qty > 0);
-    if (entries.length === 0) return showAlert('未选择车辆', '请选择至少一台库存车进行虚出。');
-
-    let selectedCars = [];
-    let riskMessages = [];
-    for (const [modelId, qty] of entries) {
-      const stock = inventory.filter(car => car.modelId === modelId);
-      const selected = stock.slice(0, qty);
-      if (selected.length < qty) {
-        const model = CAR_MODELS.find(m => m.id === modelId);
-        riskMessages.push(`${model?.name || modelId}库存不足，仅可虚出${selected.length}台`);
-      }
-      selectedCars = [...selectedCars, ...selected];
-    }
-    if (selectedCars.length === 0) return showAlert('库存不足', riskMessages.join('\n') || '没有可虚出的库存车辆。');
-
-    const totalRebate = selectedCars.reduce((sum, car) => sum + getDynamicRebate(car.modelId), 0);
-    const suspicionIncrease = selectedCars.length * 5;
-    showConfirm('确认月底虚出', `本次将虚出 ${selectedCars.length} 台车，账面销量增加 ${selectedCars.length} 台，返利池预计增加 ${formatMoney(totalRebate)}。\n厂家怀疑度将上升 ${suspicionIncrease} 点。\n${riskMessages.join('\n')}`, () => {
-      const selectedIds = new Set(selectedCars.map(car => car.id));
-      const virtualCars = selectedCars.map(car => {
-        const model = CAR_MODELS.find(m => m.id === car.modelId);
-        return {
-          id: `vc_${day}_${Math.random().toString(36).slice(2, 8)}`,
-          sourceCarId: car.id,
-          modelId: car.modelId,
-          carModel: model?.name || car.modelId,
-          color: car.color || '黑',
-          msrp: getDynamicMsrp(car.modelId),
-          price: car.price,
-          costPrice: model?.baseCost || 0,
-          virtualMonth: month,
-          realSold: false,
-          draftId: car.draftId || null,
-          floatingMonths: 0,
-        };
-      });
-      setInventory(prev => prev.filter(car => !selectedIds.has(car.id)));
-      setVirtualSales(prev => ({
-        ...prev,
-        virtualCars: [...(prev.virtualCars || []), ...virtualCars],
-        totalVirtualCount: (prev.totalVirtualCount || 0) + selectedCars.length,
-        suspicionLevel: Math.min(100, (prev.suspicionLevel || 0) + suspicionIncrease),
-        rebateEarnedFromVirtual: (prev.rebateEarnedFromVirtual || 0) + totalRebate,
-        monthlyVirtual: (prev.monthlyVirtual || 0) + selectedCars.length,
-      }));
-      setMonthlyStats(prev => ({
-        ...prev,
-        sales: prev.sales + selectedCars.length,
-        baseRebatesPool: prev.baseRebatesPool + totalRebate,
-        virtualRevenue: (prev.virtualRevenue || 0) + selectedCars.reduce((sum, car) => sum + (car.price || 0), 0),
-        virtualCogs: (prev.virtualCogs || 0) + selectedCars.reduce((sum, car) => sum + (CAR_MODELS.find(m => m.id === car.modelId)?.baseCost || 0), 0),
-        virtualRebate: (prev.virtualRebate || 0) + totalRebate,
-      }));
-      setGmWealth(prev => ({ ...prev, morale: Math.min(100, (prev.morale || 80) + 5) }));
-      appendLedger({ label: `月底虚出返利入池(${selectedCars.length}台)`, amount: totalRebate, type: 'pending' });
-      addLog('warning', `⚠️【月底虚出】虚出 ${selectedCars.length} 台车冲抵厂家任务，返利入池 ${formatMoney(totalRebate)}，厂家怀疑度 +${suspicionIncrease}。`);
-      setVirtualPlan({});
-    });
-  };
-
-  const handleCompetitorCountermeasure = (type) => {
-    const configs = {
-      price: { name: '跟价降价', cost: 60000, duration: 10, cooldown: 14, effectValue: 0.08, desc: '短期抢回到店量，但毛利承压。' },
-      service: { name: '差异化服务', cost: 40000, duration: 30, cooldown: 30, effectValue: 0.10, desc: '提高留存和转化，缓冲竞品活动。' },
-      referral: { name: '老客转介绍', cost: 16000, duration: 18, cooldown: 7, effectValue: 0.06, desc: '低成本补充自然客流。' },
-      alliance: { name: '联合抗竞', cost: 20000, duration: 21, cooldown: 90, effectValue: 0.12, desc: '与同城奥迪店联合维持价格，压低外部竞品分流。' },
-      relation: { name: '提升本品店关系', cost: 30000, duration: 1, cooldown: 30, effectValue: 0, desc: '联谊沟通，关系+6，慢慢修复本品店默契。' },
-      subsidy: { name: '厂家补贴申请', cost: 0, duration: 1, cooldown: 90, effectValue: 0, desc: '申请10-30万区域补贴，用于缓冲价格战。' },
-      poach: { name: '反挖人', cost: 50000, duration: 1, cooldown: 30, effectValue: 0, desc: '高薪挖竞品骨干，削弱竞品拉客能力。' },
-      price_war: { name: '价格战宣言', cost: 90000, duration: 14, cooldown: 60, effectValue: 0.14, desc: '大幅降价抢量，到店量上升但本品关系和毛利承压。' },
-      csi_push: { name: '提升CSI口碑', cost: 30000, duration: 45, cooldown: 30, effectValue: 0.05, desc: '长期口碑投放，降低竞品分流并带动推荐。' },
-    };
-    const cfg = configs[type];
-    if (!cfg) return;
-    if ((competitors.cooldowns?.[type] || 0) > 0) return showAlert('冷却中', `${cfg.name}还需${competitors.cooldowns[type]}天后可再次发起。`);
-    if (finance.cash < cfg.cost) return showAlert('资金不足', `${cfg.name}需要投入 ${formatMoney(cfg.cost)}。`);
-    const hasAudiLocal = (competitors.stores || []).some(store => store.brand === 'audi_local');
-    if ((type === 'alliance' || type === 'relation') && !hasAudiLocal) return showAlert('无本品店', '当前市场没有同城奥迪店，无法执行该动作。');
-    if (type === 'price') {
-      const lowTacit = (competitors.stores || []).some(store => store.brand === 'audi_local' && (store.relationship || 50) >= 40);
-      if (lowTacit) showAlert('默契定价提醒', '本品店关系仍在40以上，主动跟价可能破坏不低于指导价85%的默契底线。');
-    }
-    showConfirm('确认反制措施', `是否投入 ${formatMoney(cfg.cost)} 发起「${cfg.name}」？\n${cfg.desc}`, () => {
-      const grant = type === 'subsidy' ? 100000 + Math.floor(Math.random() * 200000) : 0;
-      setFinance(prev => ({ ...prev, cash: prev.cash - cfg.cost + grant }));
-      setCompetitors(prev => ({
-        ...prev,
-        priceWarActive: type === 'price_war' ? true : prev.priceWarActive,
-        priceWarRound: type === 'price_war' ? Math.max(1, (prev.priceWarRound || 0) + 1) : prev.priceWarRound,
-        cooldowns: { ...(prev.cooldowns || {}), [type]: cfg.cooldown },
-        playerCountermeasures: [
-          ...(prev.playerCountermeasures || []),
-          { type, name: cfg.name, effectValue: cfg.effectValue, remainingDays: cfg.duration, cost: cfg.cost },
-        ],
-        stores: (prev.stores || []).map(store => {
-          if (type === 'alliance' && store.brand === 'audi_local') return { ...store, relationship: Math.min(100, (store.relationship || 50) + 12), cooperation: { type: 'anti_competitor', remainingDays: cfg.duration } };
-          if (type === 'relation' && store.brand === 'audi_local') return { ...store, relationship: Math.min(100, (store.relationship || 50) + 6) };
-          if (type === 'poach') return { ...store, customerPull: Math.max(35, (store.customerPull || 55) - 5), staffQuality: Math.max(35, (store.staffQuality || 60) - 5) };
-          if (type === 'price_war' && store.brand === 'audi_local') return { ...store, relationship: Math.max(0, (store.relationship || 50) - 20), priceWarCount: (store.priceWarCount || 0) + 1 };
-          return store;
-        }),
-        intelHistory: [{ month, day: dayOfMonth, source: '总经理办公室', content: `玩家发起${cfg.name}${grant ? `，获得厂家补贴${formatMoney(grant)}` : ''}，预计${cfg.duration}天内影响竞品分流。`, reliability: '可靠' }, ...(prev.intelHistory || [])].slice(0, 20),
-      }));
-      setMonthlyStats(prev => ({ ...prev, marketingCost: (prev.marketingCost || 0) + cfg.cost }));
-      appendLedger({ label: `竞品反制：${cfg.name}`, amount: grant - cfg.cost, type: grant > cfg.cost ? 'income' : 'expense' });
-      addLog('success', `🌐【竞品反制】已发起${cfg.name}，${grant ? `获得${formatMoney(grant)}，` : ''}投入 ${formatMoney(cfg.cost)}。${cfg.desc}`);
-    });
-  };
-
   // === 存档/读档系统（多存档槽） ===
   const SAVE_SLOTS_KEY = 'audi_game_save_slots'; // { slots: { slot1: {...}, slot2: {...}, ... } }
   const MAX_SLOTS = 5;
@@ -3932,52 +2892,17 @@ export default function App() {
   const [renameSlot, setRenameSlot] = useState(null); // 正在重命名的槽位id
   const [renameValue, setRenameValue] = useState('');
 
-  const isSaveLike = (value) => value && typeof value === 'object' && (
-    value.savedAt || Number.isFinite(value.day) || value.finance || value.inventory || value.monthlyStats || value.gameState
-  );
-
   const getSaveSlots = () => {
     try {
       const raw = localStorage.getItem(SAVE_SLOTS_KEY);
-      const parsed = raw ? JSON.parse(raw) : { slots: {} };
-      if (parsed?.slots && typeof parsed.slots === 'object') return { slots: parsed.slots };
-      if (isSaveLike(parsed)) return { slots: { slot1: { ...parsed, slotName: parsed.slotName || '旧版存档' } } };
-      return { slots: {} };
+      return raw ? JSON.parse(raw) : { slots: {} };
     } catch { return { slots: {} }; }
-  };
-
-  const getReadableSaveEntries = () => {
-    const allSlots = getSaveSlots();
-    const slots = allSlots.slots || {};
-    const preferredKeys = ['auto', ...Array.from({ length: MAX_SLOTS }, (_, i) => `slot${i + 1}`)];
-    const extraKeys = Object.keys(slots).filter(key => !preferredKeys.includes(key)).sort();
-    return [...preferredKeys, ...extraKeys]
-      .filter(slotId => isSaveLike(slots[slotId]))
-      .map(slotId => ({ slotId, slot: slots[slotId], isAuto: slotId === 'auto' }));
-  };
-
-  const getLoadSlotEntries = () => {
-    const allSlots = getSaveSlots();
-    const slots = allSlots.slots || {};
-    const fixedKeys = ['auto', ...Array.from({ length: MAX_SLOTS }, (_, i) => `slot${i + 1}`)];
-    const extraKeys = Object.keys(slots).filter(key => !fixedKeys.includes(key)).sort();
-    return [...fixedKeys, ...extraKeys].map(slotId => {
-      const slot = isSaveLike(slots[slotId]) ? slots[slotId] : null;
-      return { slotId, slot, isAuto: slotId === 'auto' };
-    });
-  };
-
-  const getSaveSlotLabel = (slotId, slot, isAuto = false) => {
-    if (slot?.slotName) return slot.slotName;
-    if (isAuto) return '自动存档';
-    const manualIndex = /^slot\d+$/.test(slotId) ? slotId.replace('slot', '') : slotId;
-    return `存档 ${manualIndex}`;
   };
 
   const buildSaveData = () => ({
     version: 1,
     savedAt: new Date().toLocaleString('zh-CN'),
-    gameState: gameState === 'setup' ? 'playing' : gameState, day, dealerRegionId, marketSizeId: activeMarketSize.id, investorProfileId, difficultyMode, scenarioId, tutorial, endingSummary, investorRelations, finance, drafts, gmWealth, virtualSales, competitors, strategy, marketPrices, modelPriceOverrides, marketEnvironment, manufacturerPolicy,
+    gameState, day, dealerRegionId, investorProfileId, investorRelations, finance, strategy, marketPrices, modelPriceOverrides, marketEnvironment, manufacturerPolicy,
     marketing, staff, afterSales, usedCarShowroom, usedCars, testDriveCars, csi,
     insuranceRenewals, soldVehicles, monthlyStats, facility,
     inventory, pendingOrders, dailyStats, dailyLedger, managerInbox, approvalCases, customerDeals, feedback, logs,
@@ -3989,7 +2914,6 @@ export default function App() {
       baseRebatesPool: 0, lastMonthPayout: 0, lastMonthAchieve: 0, lastMonthRevenue: 0,
       revenue: 0, cogs: 0, derivativeRevenue: 0, derivativeCost: 0,
       rent: 0, depreciation: 0, labor: 0, financeCost: 0, marketingCost: 0, storageCost: 0,
-      realRevenue: 0, realCogs: 0, realRebate: 0, virtualRevenue: 0, virtualCogs: 0, virtualRebate: 0, draftBankFee: 0, draftPenalty: 0, floatingCost: 0, manufacturerPenalty: 0,
       lastMonthProcessPassed: false, activitySpend: 0, recoveredLeads: 0,
       afterSalesRevenue: 0, afterSalesCost: 0, afterSalesReturnVisits: 0, financeCommission: 0,
       tradeInCount: 0, tradeInSubsidy: 0, insuranceRenewalRevenue: 0, referralLeads: 0,
@@ -4011,56 +2935,9 @@ export default function App() {
       supplyChain: { name: '供应稳定', desc: '物流与厂家排产正常。', priceDrift: 0, delayDays: 0 },
       history: [{ month: Math.floor(((saveData.day || 1) - 1) / 30) + 1, desc: '旧存档补齐市场环境' }],
     };
-    const defaultDrafts = {
-      activeDrafts: [],
-      totalDraftAmount: 0,
-      totalBankFeePaid: 0,
-      totalDraftsPaid: 0,
-      totalDraftsDefaulted: 0,
-      creditLimit: 5000000,
-      creditUsed: 0,
-      bankReputation: 70,
-      consecutivePaid: 0,
-    };
-    const defaultGmWealth = {
-      personalAccount: 50000,
-      monthlySalary: 25000,
-      totalEarned: 50000,
-      totalDividend: 0,
-      totalBailout: 0,
-      outstandingBailout: 0,
-      yearlyNetProfit: 0,
-      investorScoreHistory: [],
-      dividendRate: 0.08,
-      personalAssets: [],
-      salaryHistory: [],
-      bailoutHistory: [],
-      morale: 80,
-    };
-    const defaultVirtualSales = {
-      virtualCars: [],
-      totalVirtualCount: 0,
-      caughtCount: 0,
-      suspicionLevel: 0,
-      rebateEarnedFromVirtual: 0,
-      penaltyPaid: 0,
-      monthlyTarget: 15,
-      monthlyActual: 0,
-      monthlyVirtual: 0,
-    };
-    const savedRegionId = saveData.dealerRegionId || 'capital';
-    const savedRegion = DEALER_REGIONS.find(r => r.id === savedRegionId) || DEALER_REGIONS[1];
-    const savedMarketSize = MARKET_SIZE_OPTIONS.find(m => m.id === (savedRegion.marketSizeId || 'medium')) || MARKET_SIZE_OPTIONS[1];
-    const loadedGameState = ['playing', 'bankrupt', 'dismissed', 'won'].includes(saveData.gameState) ? saveData.gameState : 'playing';
-    setGameState(loadedGameState);
-    setDealerRegionId(savedRegionId);
+    setGameState(saveData.gameState || 'playing');
+    setDealerRegionId(saveData.dealerRegionId || 'capital');
     setInvestorProfileId(saveData.investorProfileId || 'roi_first');
-    setMarketSizeId(savedMarketSize.id);
-    setDifficultyMode(DIFFICULTY_MODES.some(item => item.id === saveData.difficultyMode) ? saveData.difficultyMode : 'standard');
-    setScenarioId(GAME_SCENARIOS.some(item => item.id === saveData.scenarioId) ? saveData.scenarioId : 'survive6');
-    setTutorial({ enabled: true, dismissed: false, ...(saveData.tutorial || {}) });
-    setEndingSummary(saveData.endingSummary || null);
-    setEndingModalDismissed(false);
     setInvestorRelations({
       trust: 72,
       badReviews: 0,
@@ -4074,12 +2951,6 @@ export default function App() {
     });
     setDay(saveData.day || 1);
     setFinance({ cash: 3000000, loan: 0, creditLimit: 10000000, interestRate: 0.0002, ...(saveData.finance || {}) });
-    setDrafts({ ...defaultDrafts, ...(saveData.drafts || {}) });
-    setGmWealth({ ...defaultGmWealth, ...(saveData.gmWealth || {}) });
-    setVirtualSales({ ...defaultVirtualSales, ...(saveData.virtualSales || {}) });
-    setCompetitors(saveData.competitors
-      ? { ...saveData.competitors, marketSize: savedMarketSize.id, totalMarketSize: savedMarketSize.totalMarketSize }
-      : createCompetitorState(savedMarketSize));
     setStrategy({ accessories: 'OEM', warranty: 'OEM', ...(saveData.strategy || {}) });
     setMarketPrices(saveData.marketPrices || INITIAL_MARKET_PRICES);
     setModelPriceOverrides(saveData.modelPriceOverrides || {});
@@ -4136,44 +3007,14 @@ export default function App() {
     setShowSaveModal(false);
   };
 
-  const closeLoadModal = () => {
-    setShowLoadModal(false);
-    setRenameSlot(null);
-    setRenameValue('');
-    if (loadStartedFromSetup) {
-      setGameState('setup');
-      setLoadStartedFromSetup(false);
-    }
-  };
-
-  const resetAfterLoadUi = () => {
-    setShowSaveModal(false);
-    setShowLoadModal(false);
-    setRenameSlot(null);
-    setRenameValue('');
-    setOrderForm({ isOpen: false, model: null, quantity: 1, color: '黑', paymentMethod: 'draft3' });
-    setSelectedLogDay(null);
-    setSelectedInboxDay(null);
-    setInboxFilter({ type: 'all', dayRange: 'all', specificDay: '' });
-    setReadInboxIds(new Set());
-    setExpandedInboxIds(new Set());
-    setShowBriefingModal(false);
-    setShowInboxModal(false);
-    setMonthlySummaryModal(null);
-    setActiveTab('dashboard');
-    setFinanceReportView('profit');
-  };
-
   const handleLoadFromSlot = (slotId) => {
     const allSlots = getSaveSlots();
     const saveData = allSlots.slots[slotId];
-    if (!isSaveLike(saveData)) return showAlert('读档失败', '该槽位无有效存档数据。');
-    const slotName = getSaveSlotLabel(slotId, saveData, slotId === 'auto');
+    if (!saveData) return showAlert('读档失败', '该槽位无存档数据。');
+    const slotName = saveData.slotName || `存档 ${slotId}`;
     showConfirm('确认读档', `是否加载存档「${slotName}」？\n存档时间：${saveData.savedAt}\n经营日：M${Math.floor((saveData.day - 1) / 30) + 1} D${((saveData.day - 1) % 30) + 1}\n\n⚠️ 当前进度将被覆盖！`, () => {
       applySaveData(saveData);
-      setLoadStartedFromSetup(false);
-      resetAfterLoadUi();
-      showAlert('读档成功', `已读取「${slotName}」。\n当前经营日：M${Math.floor(((saveData.day || 1) - 1) / 30) + 1} D${(((saveData.day || 1) - 1) % 30) + 1}`);
+      setShowLoadModal(false);
     });
   };
 
@@ -4181,7 +3022,7 @@ export default function App() {
     const allSlots = getSaveSlots();
     const saveData = allSlots.slots[slotId];
     if (!saveData) return;
-    const slotName = getSaveSlotLabel(slotId, saveData, slotId === 'auto');
+    const slotName = saveData.slotName || `存档 ${slotId}`;
     showConfirm('确认删除', `是否删除存档「${slotName}」？\n\n⚠️ 删除后无法恢复！`, () => {
       delete allSlots.slots[slotId];
       try { localStorage.setItem(SAVE_SLOTS_KEY, JSON.stringify(allSlots)); } catch {}
@@ -4192,14 +3033,15 @@ export default function App() {
     const allSlots = getSaveSlots();
     const saveData = allSlots.slots[slotId];
     if (!saveData) return;
-    saveData.slotName = renameValue.trim() || getSaveSlotLabel(slotId, saveData, slotId === 'auto');
+    saveData.slotName = renameValue.trim() || `存档 ${slotId}`;
     try { localStorage.setItem(SAVE_SLOTS_KEY, JSON.stringify(allSlots)); } catch {}
     setRenameSlot(null);
     setRenameValue('');
   };
 
   const hasAnySaveData = () => {
-    return getReadableSaveEntries().length > 0;
+    const allSlots = getSaveSlots();
+    return Object.keys(allSlots.slots).length > 0;
   };
 
   // 兼容旧版单存档迁移
@@ -4227,58 +3069,12 @@ export default function App() {
   const gp3 = gp2 + derivProfit + financeIncome + afterSalesProfit + renewalIncome + usedCarProfit;
   const opex = (monthlyStats.rent || 0) + (monthlyStats.depreciation || 0) + (monthlyStats.labor || 0) + (monthlyStats.marketingCost || 0) + (monthlyStats.financeCost || 0) + (monthlyStats.storageCost || 0);
   const netProfit = gp3 - opex;
-  const activeDraftList = (drafts.activeDrafts || []).filter(d => d.status === 'active' || d.status === 'defaulted');
-  const unpaidDraftAmount = activeDraftList.reduce((sum, d) => sum + (d.status === 'active' ? d.amount : (d.overduePrincipal || 0)), 0);
-  const upcomingDrafts = activeDraftList
-    .filter(d => d.status === 'active')
-    .map(d => ({ ...d, remainingDays: getDraftRemainingDays(d) }))
-    .sort((a, b) => a.remainingDays - b.remainingDays);
-  const nearestDraft = upcomingDrafts[0];
-  const warningDrafts = upcomingDrafts.filter(d => d.remainingDays <= 7);
-  const defaultedDrafts = activeDraftList.filter(d => d.status === 'defaulted');
-  const draftCreditUsage = drafts.creditLimit > 0 ? Math.min(100, ((drafts.creditUsed || 0) / drafts.creditLimit) * 100) : 0;
-  const visibleCompetitorStores = (competitors.stores || []).filter(store => store.isVisible !== false);
-  const hiddenCompetitorCount = Math.max(0, (competitors.stores || []).length - visibleCompetitorStores.length);
-  const dailyBurnEstimate = Math.max(1, getCompanyDailyBurn());
-  const cashCoverageDays = Math.floor((finance.cash || 0) / dailyBurnEstimate);
-  const currentMonthLedger = dailyLedger.filter(l => l.day > (month - 1) * 30);
-  const ledgerItems = currentMonthLedger.flatMap(entry => entry.items || []);
-  const ledgerIncome = ledgerItems.filter(item => item.type === 'income').reduce((sum, item) => sum + Math.max(0, item.amount || 0), 0);
-  const ledgerExpense = ledgerItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + Math.abs(Math.min(0, item.amount || 0)), 0);
-  const draftDepositPaid = ledgerItems.filter(item => item.label?.includes('银行承兑汇票采购')).reduce((sum, item) => sum + Math.abs(item.amount || 0), 0);
-  const draftDuePaid = ledgerItems.filter(item => item.label?.includes('汇票到期兑付') || item.label?.includes('汇票兑付不足')).reduce((sum, item) => sum + Math.abs(item.amount || 0), 0);
-  const bailoutIn = ledgerItems.filter(item => item.label?.includes('GM个人垫资入账')).reduce((sum, item) => sum + Math.max(0, item.amount || 0), 0);
-  const bailoutRepay = ledgerItems.filter(item => item.label?.includes('归还GM垫资')).reduce((sum, item) => sum + Math.abs(item.amount || 0), 0);
-  const inventoryAssetValue = inventory.reduce((sum, car) => sum + (CAR_MODELS.find(m => m.id === car.modelId)?.baseCost || 0), 0);
-  const virtualInventoryValue = (virtualSales.virtualCars || []).reduce((sum, car) => sum + (car.costPrice || 0), 0);
-  const usedCarAssetValue = usedCars.filter(c => c.status === 'stock').reduce((sum, c) => sum + (c.purchasePrice || 0), 0);
-  const balanceAssets = (finance.cash || 0) + inventoryAssetValue + virtualInventoryValue + usedCarAssetValue;
-  const balanceLiabilities = (finance.loan || 0) + unpaidDraftAmount + (gmWealth.outstandingBailout || 0);
-  const ownerEquity = balanceAssets - balanceLiabilities;
-  const debtRatio = balanceAssets > 0 ? balanceLiabilities / balanceAssets : 0;
-  const realRevenueView = monthlyStats.realRevenue || monthlyStats.revenue || 0;
-  const realCogsView = monthlyStats.realCogs || monthlyStats.cogs || 0;
-  const realRebateView = monthlyStats.realRebate || Math.max(0, (monthlyStats.baseRebatesPool || 0) - (monthlyStats.virtualRebate || 0));
-  const virtualRevenueView = monthlyStats.virtualRevenue || 0;
-  const virtualCogsView = monthlyStats.virtualCogs || 0;
-  const virtualRebateView = monthlyStats.virtualRebate || 0;
-  const recentRatingTrend = [...(feedback.ratingHistory || [])].slice(-12);
-  const normalizedMarketShare = normalizeMarketShare(competitors.marketShare || {});
-  const marketShareSegments = [
-    { label: '玩家奥迪', value: normalizedMarketShare.audi || 0, color: '#2563eb' },
-    { label: '宝马系', value: normalizedMarketShare.bmw || 0, color: '#0284c7' },
-    { label: '奔驰系', value: normalizedMarketShare.benz || 0, color: '#475569' },
-    { label: '新能源', value: normalizedMarketShare.ev || 0, color: '#059669' },
-    { label: '本品店', value: normalizedMarketShare.audiLocal || 0, color: '#4f46e5' },
-    { label: '其他', value: normalizedMarketShare.other || 0, color: '#94a3b8' },
-  ].filter(item => item.value > 0);
 
   const targetProgress = monthlyStats.target > 0 ? Math.min(100, (monthlyStats.sales / monthlyStats.target) * 100) : 0;
   const inviteRateVal = monthlyStats.leads > 0 ? monthlyStats.dccWalkIns / monthlyStats.leads : 0;
   const convertRateVal = monthlyStats.walkIns > 0 ? monthlyStats.sales / monthlyStats.walkIns : 0;
 
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [financeReportView, setFinanceReportView] = useState('profit');
+  const [activeTab, setActiveTab] = useState('showroom');
   const todoQueue = (() => {
     const items = [];
     const totalSlots = facility.showroomSpots + facility.warehouseCapacity;
@@ -4288,16 +3084,10 @@ export default function App() {
     const oldStockCount = inventory.filter(c => !c.subsidized && (c.stockDays || 0) >= 30 && (c.stockDays || 0) < 120).length;
     const veryOldStockCount = inventory.filter(c => (c.stockDays || 0) >= 90).length;
     const unpreppedUsedCars = usedCars.filter(c => c.status === 'stock' && !c.prepped).length;
-    const pendingApprovalItems = approvalCases.filter(item => item.status === 'pending');
-    const pendingApprovals = pendingApprovalItems.length;
+    const pendingApprovals = approvalCases.filter(item => item.status === 'pending').length;
     const pendingCustomerDeals = customerDeals.filter(item => item.status === 'pending').length;
-    const pendingApprovalSummary = [
-      pendingApprovalItems.filter(item => item.type === 'price').length > 0 ? `${pendingApprovalItems.filter(item => item.type === 'price').length}个价格审批` : null,
-      pendingApprovalItems.filter(item => item.type === 'complaint').length > 0 ? `${pendingApprovalItems.filter(item => item.type === 'complaint').length}个客诉` : null,
-      pendingApprovalItems.filter(item => item.type === 'negotiation').length > 0 ? `${pendingApprovalItems.filter(item => item.type === 'negotiation').length}个外部谈判` : null,
-    ].filter(Boolean).join('、') || `${pendingApprovals} 个审批事项`;
     if (pendingCustomerDeals > 0) items.push({ level: 'high', title: '重点客户待谈判', detail: `${pendingCustomerDeals} 位客户正在等报价，过期会流失。`, tab: 'customer' });
-    if (pendingApprovals > 0) items.push({ level: 'high', title: '总经理审批待处理', detail: `${pendingApprovalSummary}需要拍板，进入首页审批中心处理。`, tab: 'dashboard' });
+    if (pendingApprovals > 0) items.push({ level: 'high', title: '总经理审批待处理', detail: `${pendingApprovals} 个价格/客诉事项需要拍板。`, tab: activeTab });
     if (inventory.length === 0 && pendingOrders.length === 0) items.push({ level: 'high', title: '展厅无现车', detail: '请尽快向厂家订货，否则自然客流和成交都会停摆。', tab: 'order' });
     if (freeSlots <= 2) items.push({ level: 'mid', title: '库存容量紧张', detail: `剩余库位仅 ${freeSlots} 个，继续订货前建议批售或升级设施。`, tab: 'showroom' });
     if (showroomUsed < facility.showroomSpots && warehouseCount > 0) items.push({ level: 'mid', title: '展厅还有空位', detail: `当前展位 ${showroomUsed}/${facility.showroomSpots}，可一键布展提升转化率。`, tab: 'showroom' });
@@ -4311,7 +3101,6 @@ export default function App() {
     return items.slice(0, 6);
   })();
   const currentLossDrivers = buildLossDrivers(monthlyStats, netProfit);
-  const hasProfitSample = monthlyStats.sales > 0 || monthlyStats.walkIns > 0 || monthlyStats.derivativeRevenue > 0 || monthlyStats.afterSalesRevenue > 0 || monthlyStats.usedCarRevenue > 0;
   const highTodoCount = todoQueue.filter(item => item.level === 'high').length;
   const expectedProgress = Math.max(0.12, dayOfMonth / 30);
   const salesPaceScore = Math.min(32, (monthlyStats.target > 0 ? (monthlyStats.sales / monthlyStats.target) / expectedProgress : 0) * 32);
@@ -4326,17 +3115,6 @@ export default function App() {
   const feedbackState = normalizeFeedbackState(feedback);
   const unlockedAchievements = ACHIEVEMENTS.filter(def => feedbackState.unlockedAchievementIds.includes(def.id));
   const latestBadges = feedbackState.monthlyBadges.slice(-5).reverse();
-  const excellentMonthCount = feedbackState.ratingHistory.filter(item => (item.score || 0) >= 82 || (item.investorScore || 0) >= 82).length;
-  const scenarioProgressValue = isFreeScenario
-    ? Math.min(1, Math.max(0, ownerEquity / 6000000))
-    : activeScenario.id === 'double12'
-    ? ownerEquity / activeScenario.targetNetAssets
-    : activeScenario.id === 'star12'
-    ? Math.min(ownerEquity / activeScenario.targetNetAssets, excellentMonthCount / (activeScenario.minExcellentMonths || 3))
-    : day / scenarioDurationDays;
-  const scenarioProgress = Math.max(0, Math.min(100, Math.round(scenarioProgressValue * 100)));
-  const tutorialContext = { inventory, pendingOrders, monthlyStats, soldVehicles, month, feedbackState };
-  const activeTutorialStep = tutorial.enabled && !tutorial.dismissed ? TUTORIAL_STEPS.find(step => !step.done(tutorialContext)) : null;
   const pendingLimitTasks = approvalCases.filter(item => item.status === 'pending').length + customerDeals.filter(item => item.status === 'pending').length;
   const showroomUsedForTasks = inventory.filter(c => c.location === 'showroom').length;
   const careerMembers = [
@@ -4356,7 +3134,7 @@ export default function App() {
       title: '清空限时事项',
       done: pendingLimitTasks === 0,
       detail: pendingLimitTasks === 0 ? '价格、客诉和重点客户都已处理。' : `${pendingLimitTasks}个事项会过期，先拍板。`,
-      tab: customerDeals.some(item => item.status === 'pending') ? 'customer' : approvalCases.some(item => item.status === 'pending') ? 'dashboard' : 'dashboard',
+      tab: customerDeals.some(item => item.status === 'pending') ? 'customer' : activeTab,
     },
     {
       title: '展厅保持可卖',
@@ -4367,13 +3145,10 @@ export default function App() {
     {
       title: '现金风险不过线',
       done: finance.loan <= finance.creditLimit * 0.85 && finance.cash > 0,
-      detail: finance.loan > finance.creditLimit * 0.85 ? '负债接近库存融资授信红线，建议回款或还贷。' : `现金${formatMoney(finance.cash)}，库存融资授信仍有缓冲。`,
-      tab: 'finance',
+      detail: finance.loan > finance.creditLimit * 0.85 ? '负债接近授信红线，建议回款或还贷。' : `现金${formatMoney(finance.cash)}，授信仍有缓冲。`,
+      tab: 'derivative',
     },
   ];
-  const openTaskTarget = (item) => {
-    setActiveTab(item.tab || 'dashboard');
-  };
   const renderCareerLine = (type, member) => {
     const normalized = normalizeStaffMember(type, member);
     const level = getCareerLevel(normalized);
@@ -4414,14 +3189,6 @@ export default function App() {
   ];
   const moduleGroups = [
     {
-      id: 'dashboard',
-      label: '首页',
-      desc: '经营看板',
-      tabs: [
-        { id: 'dashboard', label: '经营看板' },
-      ],
-    },
-    {
       id: 'sales',
       label: '销售运营',
       desc: '库存、订货、营销',
@@ -4429,78 +3196,38 @@ export default function App() {
         { id: 'showroom', label: '展厅定价' },
         { id: 'order', label: '厂家订货' },
         { id: 'marketing', label: '漏斗营销' },
-        { id: 'sprint', label: '月底冲刺' },
         { id: 'customer', label: '客户谈判' },
       ],
     },
     {
       id: 'profit',
       label: '利润中心',
-      desc: '财务、返利、汇票',
+      desc: '财务、二手车、售后',
       tabs: [
-        { id: 'finance', label: '总经理办公室' },
-        { id: 'reports', label: '财务' },
-        { id: 'rebate', label: '返利' },
-        { id: 'draft', label: '汇票' },
+        { id: 'derivative', label: '衍生与财务' },
+        { id: 'usedcar', label: '二手车' },
+        { id: 'aftersales', label: '售后服务' },
       ],
     },
     {
       id: 'team',
       label: '组织人事',
-      desc: '人事、设施',
+      desc: '招聘、培训、设施',
       tabs: [
         { id: 'staff', label: '人事招聘' },
-        { id: 'facility', label: '设施升级' },
       ],
     },
     {
       id: 'diagnosis',
-      label: '市场诊断',
-      desc: '本地市场、CSI',
+      label: '经营诊断',
+      desc: 'CSI、返利、市场',
       tabs: [
-        { id: 'market', label: '本地市场' },
         { id: 'csi', label: 'CSI满意度' },
-      ],
-    },
-    {
-      id: 'derivative',
-      label: '衍生中心',
-      desc: '二手车、售后、配置',
-      tabs: [
-        { id: 'usedcar', label: '二手车' },
-        { id: 'aftersales', label: '售后服务' },
-        { id: 'derivConfig', label: '金融衍生' },
+        { id: 'assessment', label: '返利考核' },
       ],
     },
   ];
   const activeGroup = moduleGroups.find(group => group.tabs.some(tab => tab.id === activeTab)) || moduleGroups[0];
-  const getInboxType = (msg = {}) => {
-    const text = `${msg.from || ''}${msg.title || ''}${msg.body || ''}`;
-    if (/厂家|商务|返利|政策/.test(text)) return 'manufacturer';
-    if (/银行|授信|汇票|贷款|兑付/.test(text)) return 'bank';
-    if (/市场|竞品|情报|区域/.test(text)) return 'market';
-    return 'system';
-  };
-  const inboxTypeLabel = { all: '全部', manufacturer: '厂家', bank: '银行', market: '市场', system: '系统' };
-  const toggleInboxRead = (id) => setReadInboxIds(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-  const toggleExpandedInbox = (id) => setExpandedInboxIds(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-  const toggleExpandedMessage = (id) => setExpandedMessageIds(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-  const openInboxForDay = (targetDay = null) => {
-    setSelectedInboxDay(targetDay);
-    setShowInboxModal(true);
-  };
   const messageFeed = [
     ...managerInbox.map((msg, index) => ({
       id: msg.id,
@@ -4511,63 +3238,18 @@ export default function App() {
       title: msg.title,
       body: `${msg.from}：${msg.body}`,
       tone: 'info',
-      sourceType: getInboxType(msg),
     })),
     ...logs.map((log, index) => ({
       id: `log_${index}_${log.day}`,
       kind: 'log',
       order: managerInbox.length + index,
       day: log.day,
-      label: log.type === 'expense' ? '财务' : log.type === 'success' ? '完成' : log.type === 'warning' ? '预警' : '事件',
-      title: log.type === 'expense' ? '资金变动' : log.type === 'success' ? '经营事件' : log.type === 'warning' ? '风险提示' : '经营事件',
+      label: log.type === 'expense' ? '财务' : log.type === 'success' ? '喜报' : log.type === 'warning' ? '警示' : '日志',
+      title: log.type === 'expense' ? '财务流水提醒' : log.type === 'success' ? '经营喜报' : log.type === 'warning' ? '经营预警' : '经营通知',
       body: log.message,
       tone: log.type,
-      sourceType: 'system',
     })),
   ].sort((a, b) => (b.day - a.day) || (b.order - a.order));
-  const visibleMessageFeed = messageFeed.slice(0, 40);
-  const filteredInboxMessages = [...managerInbox].reverse().filter(msg => {
-    const msgType = getInboxType(msg);
-    if (selectedInboxDay !== null) return msg.day === selectedInboxDay;
-    if (inboxFilter.type !== 'all' && msgType !== inboxFilter.type) return false;
-    const rawSpecificDay = String(inboxFilter.specificDay || '').replace(/[^\d]/g, '');
-    if (rawSpecificDay && msg.day !== Number(rawSpecificDay)) return false;
-    if (inboxFilter.dayRange === 'today') return msg.day === day;
-    if (inboxFilter.dayRange === '7') return msg.day >= Math.max(1, day - 6);
-    if (inboxFilter.dayRange === '30') return msg.day >= Math.max(1, day - 29);
-    return true;
-  });
-  const unreadInboxCount = managerInbox.filter(msg => !readInboxIds.has(msg.id)).length;
-  const urgentOperationCount = approvalCases.filter(item => item.status === 'pending').length + customerDeals.filter(item => item.status === 'pending' && item.dueDay <= day + 1).length + defaultedDrafts.length;
-  const currentEnding = endingModalDismissed ? null : endingSummary || (gameState === 'bankrupt' ? {
-    rank: 'bankrupt',
-    scenarioName: activeScenario.name,
-    difficultyName: activeDifficulty.name,
-    day,
-    netAssets: ownerEquity,
-    loan: finance.loan,
-    liabilities: balanceLiabilities,
-    totalAssets: balanceAssets,
-    excellentMonths: excellentMonthCount,
-  } : gameState === 'dismissed' ? {
-    rank: 'dismissed',
-    scenarioName: activeScenario.name,
-    difficultyName: activeDifficulty.name,
-    day,
-    netAssets: ownerEquity,
-    loan: finance.loan,
-    liabilities: balanceLiabilities,
-    totalAssets: balanceAssets,
-    excellentMonths: excellentMonthCount,
-  } : null);
-  const endingMeta = currentEnding ? ({
-    bankrupt: { title: '破产清算', tone: 'bg-red-600', desc: '资金链断裂，银行授信被击穿。' },
-    dismissed: { title: '被解聘', tone: 'bg-red-700', desc: '董事会认为目标未达成，决定更换总经理。' },
-    failed: { title: '任期未达标', tone: 'bg-amber-600', desc: '保住了部分基本盘，但没有完成本局目标。' },
-    renewed: { title: '成功续约', tone: 'bg-blue-600', desc: '你守住了职位，获得下一任期授权。' },
-    excellent: { title: '优秀总经理', tone: 'bg-emerald-600', desc: '经营质量获得董事会和投资人认可。' },
-    regional_star: { title: '区域明星店', tone: 'bg-violet-600', desc: '门店成为区域标杆，厂家和投资人都愿意继续加码。' },
-  }[currentEnding.rank] || { title: '经营结局', tone: 'bg-slate-700', desc: '本局已经结束。' }) : null;
 
   if (gameState === 'setup') {
     return (
@@ -4582,18 +3264,14 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white text-slate-900 rounded-2xl p-5 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black">选择市场环境</h2>
-                <span className="text-xs font-bold text-slate-400">区域 + 规模</span>
+                <h2 className="text-xl font-black">选择经营区域</h2>
+                <span className="text-xs font-bold text-slate-400">决定外部市场</span>
               </div>
-              <p className="text-xs font-black text-slate-500 mb-2">经营区域</p>
               <div className="space-y-3">
                 {DEALER_REGIONS.map(region => (
                   <button
                     key={region.id}
-                    onClick={() => {
-                      setDealerRegionId(region.id);
-                      setMarketSizeId(region.marketSizeId || 'medium');
-                    }}
+                    onClick={() => setDealerRegionId(region.id)}
                     className={'w-full text-left rounded-xl border p-4 transition-all ' + (dealerRegionId === region.id ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}
                   >
                     <div className="flex justify-between gap-3">
@@ -4604,26 +3282,10 @@ export default function App() {
                     <div className="flex flex-wrap gap-2 mt-3">
                       <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">获客成本×{region.leadCost.toFixed(2)}</span>
                       <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">人才流失×{region.turnover.toFixed(2)}</span>
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200"><Term term="授信">授信</Term>×{region.credit.toFixed(2)}</span>
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">授信×{region.credit.toFixed(2)}</span>
                     </div>
                   </button>
                 ))}
-              </div>
-              <div className="mt-5 pt-4 border-t border-slate-100">
-                <p className="text-xs font-black text-slate-500 mb-2">绑定市场规模</p>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="flex justify-between gap-3">
-                    <p className="font-black text-slate-900">{activeMarketSize.icon} {activeMarketSize.name}</p>
-                    <span className="text-xs font-bold text-amber-700 shrink-0">{Object.values(activeMarketSize.counts).reduce((s, n) => s + n, 0)}店</span>
-                  </div>
-                  <p className="text-sm text-slate-600 mt-1">{activeMarketSize.desc}</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-amber-200">月需求约{activeMarketSize.totalMarketSize}台</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-amber-200"><Term term="本品店">本品店</Term>{activeMarketSize.counts.audiLocal}家</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-amber-200">新能源{activeMarketSize.counts.ev}家</span>
-                  </div>
-                  <p className="text-[10px] font-bold text-amber-700 mt-3">市场规模由所选经营区域自动决定。</p>
-                </div>
               </div>
             </div>
 
@@ -4641,59 +3303,10 @@ export default function App() {
                   >
                     <p className="font-black text-slate-900">{investor.name}</p>
                     <p className="text-sm text-slate-600 mt-1">{investor.desc}</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-3">月底评分关注点（合计 {Math.round(Object.values(investor.weights).reduce((sum, weight) => sum + weight, 0) * 100)}%）</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-[10px]">
-                      {INVESTOR_WEIGHT_LABELS.map(([key, label]) => (
-                        <span key={key} className="rounded-full bg-white border border-slate-200 px-2 py-1">{label} {Math.round((investor.weights[key] || 0) * 100)}%</span>
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white text-slate-900 rounded-2xl p-5 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black">选择剧本目标</h2>
-                <span className="text-xs font-bold text-slate-400">决定输赢条件</span>
-              </div>
-              <div className="space-y-3">
-                {GAME_SCENARIOS.map(scenario => (
-                  <button
-                    key={scenario.id}
-                    onClick={() => setScenarioId(scenario.id)}
-                    className={'w-full text-left rounded-xl border p-4 transition-all ' + (scenarioId === scenario.id ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}
-                  >
-                    <div className="flex justify-between gap-3">
-                      <p className="font-black text-slate-900">{scenario.name}</p>
-                      <span className="text-xs font-bold text-blue-600 shrink-0">{scenario.months > 0 ? `${scenario.months}个月` : '不限期'}</span>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-1">{scenario.goal}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white text-slate-900 rounded-2xl p-5 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black">选择难度模式</h2>
-                <span className="text-xs font-bold text-slate-400">影响开局资源</span>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                {DIFFICULTY_MODES.map(mode => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setDifficultyMode(mode.id)}
-                    className={'w-full text-left rounded-xl border p-4 transition-all ' + (difficultyMode === mode.id ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-50 border-slate-200 hover:border-emerald-200')}
-                  >
-                    <p className="font-black text-slate-900">{mode.name}</p>
-                    <p className="text-sm text-slate-600 mt-1">{mode.desc}</p>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">现金×{mode.cashMultiplier.toFixed(2)}</span>
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">授信×{mode.creditMultiplier.toFixed(2)}</span>
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">任务×{mode.targetMultiplier.toFixed(2)}</span>
+                    <div className="grid grid-cols-3 gap-2 mt-3 text-[10px]">
+                      <span className="rounded-full bg-white border border-slate-200 px-2 py-1">销量 {Math.round((investor.weights.sales || 0) * 100)}%</span>
+                      <span className="rounded-full bg-white border border-slate-200 px-2 py-1">利润 {Math.round((investor.weights.profit || 0) * 100)}%</span>
+                      <span className="rounded-full bg-white border border-slate-200 px-2 py-1">CSI {Math.round((investor.weights.csi || 0) * 100)}%</span>
                     </div>
                   </button>
                 ))}
@@ -4704,12 +3317,12 @@ export default function App() {
           <div className="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="text-sm text-slate-400">本局设定</p>
-              <p className="text-xl font-black mt-1">{activeScenario.name} × {activeDifficulty.name} × {activeRegion.name} × {activeInvestor.name}</p>
-              <p className="text-sm text-slate-300 mt-1">初始现金 {formatMoney(Math.round(3000000 * activeDifficulty.cashMultiplier))}，初始<Term term="库存融资授信">授信</Term> {formatMoney(Math.round(10000000 * (activeRegion.credit || 1) * activeDifficulty.creditMultiplier))}，首月任务约{Math.max(8, Math.round(15 * activeDifficulty.targetMultiplier))}台。</p>
+              <p className="text-xl font-black mt-1">{activeRegion.name} × {activeInvestor.name}</p>
+              <p className="text-sm text-slate-300 mt-1">初始授信 {formatMoney(Math.round(10000000 * (activeRegion.credit || 1)))}，投资人初始信任度 {investorRelations.trust}。</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               {hasAnySaveData() && (
-                <button onClick={() => { setLoadStartedFromSetup(true); setGameState('playing'); setShowLoadModal(true); }} className="px-5 py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-black text-sm shadow-lg transition-colors">
+                <button onClick={() => { setGameState('playing'); setShowLoadModal(true); }} className="px-5 py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-black text-sm shadow-lg transition-colors">
                   读取存档
                 </button>
               )}
@@ -4740,11 +3353,8 @@ export default function App() {
             <div className="h-12 w-px bg-slate-700 hidden md:block"></div>
             <div>
               <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">经营剧本</p>
-              <p className="text-sm font-black text-slate-100">{activeScenario.name}</p>
-              <p className="text-xs text-blue-300">{activeDifficulty.name} · {activeInvestor.name} · 信任{investorRelations.trust}</p>
-              <div className="mt-2 h-1.5 w-40 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-400" style={{ width: `${scenarioProgress}%` }}></div>
-              </div>
+              <p className="text-sm font-black text-slate-100">{activeRegion.name}</p>
+              <p className="text-xs text-blue-300">{activeInvestor.name} · 信任{investorRelations.trust}</p>
             </div>
             <div className="h-12 w-px bg-slate-700 hidden md:block"></div>
             <div>
@@ -4753,7 +3363,7 @@ export default function App() {
             </div>
             <div className="h-12 w-px bg-slate-700 hidden md:block"></div>
             <div>
-              <p className="text-slate-400 text-xs font-bold tracking-widest flex items-center gap-1"><Icons.Bank /> <Term term="库存融资授信">库存融资负债 / 授信</Term></p>
+              <p className="text-slate-400 text-xs font-bold tracking-widest flex items-center gap-1"><Icons.Bank /> 银行负债 / 动态授信</p>
               <div className="flex items-end gap-2">
                 <p className={'text-2xl font-bold  ' + (finance.loan > finance.creditLimit * 0.8 ? 'text-red-400' : 'text-orange-400')}>
                   {formatMoney(finance.loan)}
@@ -4767,16 +3377,15 @@ export default function App() {
           </div>
           <div className="flex flex-col items-center gap-2">
             <button
-              onClick={handleNextDay} disabled={gameState !== 'playing' || isAdvancingDay}
+              onClick={handleNextDay} disabled={gameState !== 'playing'}
               className={`px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all ${
                 gameState === 'bankrupt' ? 'bg-red-600 text-white cursor-not-allowed' :
                 gameState === 'dismissed' ? 'bg-red-700 text-white cursor-not-allowed' :
                 gameState === 'won' ? 'bg-green-600 text-white cursor-not-allowed' :
-                isAdvancingDay ? 'bg-slate-500 text-white cursor-wait' :
                 'bg-blue-600 hover:bg-blue-500 text-white'
               }`}
             >
-              {gameState === 'bankrupt' ? '经营破产' : gameState === 'dismissed' ? '已被解聘' : gameState === 'won' ? '🏆 经营成功' : isAdvancingDay ? '日结中...' : '进入下一天 ➔'}
+              {gameState === 'bankrupt' ? '经营破产' : gameState === 'dismissed' ? '已被解聘' : gameState === 'won' ? '🏆 经营成功' : '进入下一天 ➔'}
             </button>
             <div className="flex gap-2">
               <button onClick={() => setShowSaveModal(true)} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
@@ -4796,15 +3405,15 @@ export default function App() {
           <div className="flex-1 flex flex-col gap-4 overflow-hidden">
             {/* 模块导航 */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2">
-              <div className="grid grid-cols-3 xl:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 {moduleGroups.map(group => (
                   <button
                     key={group.id}
                     onClick={() => setActiveTab(group.tabs[0].id)}
-                    className={'text-left rounded-lg p-2.5 transition-colors border ' + (activeGroup.id === group.id ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-blue-50 hover:border-blue-200')}
+                    className={'text-left rounded-lg p-3 transition-colors border ' + (activeGroup.id === group.id ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-blue-50 hover:border-blue-200')}
                   >
-                    <p className="text-xs font-black">{group.label}</p>
-                    <p className={'text-[9px] mt-0.5 ' + (activeGroup.id === group.id ? 'text-slate-300' : 'text-slate-400')}>{group.desc}</p>
+                    <p className="text-sm font-black">{group.label}</p>
+                    <p className={'text-[10px] mt-1 ' + (activeGroup.id === group.id ? 'text-slate-300' : 'text-slate-400')}>{group.desc}</p>
                   </button>
                 ))}
               </div>
@@ -4821,49 +3430,6 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <div className="lg:col-span-2 rounded-xl border border-blue-100 bg-blue-50 p-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black text-blue-600">本局目标</p>
-                    <h3 className="font-black text-slate-900 mt-1">{activeScenario.name}</h3>
-                    <p className="text-xs text-slate-600 mt-1">{activeScenario.goal}</p>
-                  </div>
-                  <div className="min-w-40">
-                    <div className="flex justify-between text-[10px] font-bold text-blue-700 mb-1">
-                      <span>进度</span>
-                      <span>{scenarioProgress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white border border-blue-100 overflow-hidden">
-                      <div className="h-full bg-blue-600" style={{ width: `${scenarioProgress}%` }}></div>
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-1">{isFreeScenario ? '长期经营' : `剩余 ${Math.max(0, scenarioDurationDays - day)} 天`} · 净资产 {formatMoney(ownerEquity)}</p>
-                  </div>
-                </div>
-              </div>
-              {activeTutorialStep ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-black text-amber-700">新手引导</p>
-                      <h3 className="font-black text-slate-900 mt-1">{activeTutorialStep.title}</h3>
-                      <p className="text-xs text-slate-600 mt-1">{activeTutorialStep.detail}</p>
-                    </div>
-                    <button onClick={() => setTutorial(prev => ({ ...prev, dismissed: true }))} className="text-xs font-black text-slate-400 hover:text-slate-600">关闭</button>
-                  </div>
-                  <button onClick={() => setActiveTab(activeTutorialStep.tab)} className="mt-3 px-3 py-2 rounded-lg bg-amber-600 text-white text-xs font-black hover:bg-amber-700">前往处理</button>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                  <p className="text-xs font-black text-emerald-700">新手引导</p>
-                  <h3 className="font-black text-slate-900 mt-1">基础循环已打通</h3>
-                  <p className="text-xs text-slate-600 mt-1">继续盯住月结、返利和现金安全。</p>
-                </div>
-              )}
-            </div>
-
-            {activeTab === 'dashboard' && (
-              <>
             {/* 店总办公室：晨会 / 待办 / 反馈 */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="bg-slate-900 text-white rounded-xl shadow-sm border border-slate-800 p-4">
@@ -4895,7 +3461,7 @@ export default function App() {
                 <div className="space-y-2 max-h-40 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                   {todoQueue.length === 0 && <p className="text-sm text-slate-400 py-6 text-center">暂无紧急待办</p>}
                   {todoQueue.map(item => (
-                    <button key={`${item.title}-${item.tab}`} onClick={() => openTaskTarget(item)} className="w-full text-left border border-slate-100 rounded-lg p-2 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+                    <button key={`${item.title}-${item.tab}`} onClick={() => setActiveTab(item.tab)} className="w-full text-left border border-slate-100 rounded-lg p-2 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition-colors">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-slate-800 truncate">{item.title}</p>
                         <span className={'text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ' + (item.level === 'high' ? 'bg-red-100 text-red-600' : item.level === 'mid' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600')}>
@@ -4920,7 +3486,7 @@ export default function App() {
                 </div>
                 <div className="space-y-2">
                   {dailyChecklist.map(item => (
-                    <button key={item.title} onClick={() => openTaskTarget(item)} className={'w-full text-left rounded-lg border p-2 transition-colors ' + (item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100')}>
+                    <button key={item.title} onClick={() => setActiveTab(item.tab)} className={'w-full text-left rounded-lg border p-2 transition-colors ' + (item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100')}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-slate-800">{item.title}</p>
                         <span className={'text-[10px] font-black ' + (item.done ? 'text-emerald-600' : 'text-amber-700')}>{item.done ? '完成' : '待处理'}</span>
@@ -4940,7 +3506,7 @@ export default function App() {
                     <p className="text-5xl font-black">{operatingRating.grade}</p>
                     <div className="pb-1">
                       <p className="font-bold">{operatingRating.label} · {operatingScore}分</p>
-                      <p className="text-xs text-slate-400">按销量节奏、利润、现金、<Term term="CSI">CSI</Term>和待办计算</p>
+                      <p className="text-xs text-slate-400">按销量节奏、利润、现金、CSI和待办计算</p>
                     </div>
                   </div>
                   <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
@@ -4953,7 +3519,7 @@ export default function App() {
                     <span className="text-xs text-slate-400">{feedbackState.monthlyBadges.length} 枚</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {latestBadges.length === 0 && <p className="text-xs text-slate-400 leading-relaxed">月底达成销量、利润、<Term term="CSI">CSI</Term>或漏斗指标后会发放徽章。</p>}
+                    {latestBadges.length === 0 && <p className="text-xs text-slate-400 leading-relaxed">月底达成销量、利润、CSI或漏斗指标后会发放徽章。</p>}
                     {latestBadges.map(badge => (
                       <span key={badge.id} title={badge.desc} className="text-xs font-bold px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-700">
                         {badge.name}
@@ -4963,11 +3529,9 @@ export default function App() {
                   {feedbackState.lastMonthReport && <p className="text-xs text-slate-500 mt-3">{feedbackState.lastMonthReport.headline}</p>}
                 </div>
                 <div className="rounded-xl bg-red-50 border border-red-100 p-4">
-                  <p className="text-sm font-black text-slate-800 mb-2">{!hasProfitSample ? '利润体检' : netProfit < 0 ? '亏损原因分析' : '利润体检'}</p>
-                  {!hasProfitSample ? (
-                    <p className="text-xs text-slate-600 leading-relaxed">经营样本不足，暂无可靠利润判断。先完成线索、到店、成交或售后业务后再看体检结论。</p>
-                  ) : currentLossDrivers.length === 0 ? (
-                    <p className="text-xs text-emerald-700 leading-relaxed">当前<Term term="GP3">GP3</Term>扣除经营费用后为正，继续盯住<Term term="库存周转">库存周转</Term>和月底返利兑现。</p>
+                  <p className="text-sm font-black text-slate-800 mb-2">{netProfit < 0 ? '亏损原因分析' : '利润体检'}</p>
+                  {currentLossDrivers.length === 0 ? (
+                    <p className="text-xs text-emerald-700 leading-relaxed">当前GP3扣除经营费用后为正，继续盯住库存周转和月底返利兑现。</p>
                   ) : (
                     <div className="space-y-2">
                       {currentLossDrivers.map(item => (
@@ -5024,8 +3588,8 @@ export default function App() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3">
                             <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400">底线预警</p><p className="font-bold">{formatMoney(item.minimumGuardPrice)}</p></div>
                             <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400">成交把握</p><p className="font-bold text-blue-600">{item.closeChance}%</p></div>
-                            <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400"><Term term="返利池">返利入池</Term></p><p className="font-bold text-green-600">{formatMoney(item.rebate)}</p></div>
-                            <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400"><Term term="衍生业务">衍生金融</Term></p><p className="font-bold text-green-600">{formatMoney(item.derivativeProfit + item.financeCommission)}</p></div>
+                            <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400">返利入池</p><p className="font-bold text-green-600">{formatMoney(item.rebate)}</p></div>
+                            <div className="bg-white rounded-lg p-2 border border-slate-100"><p className="text-slate-400">衍生金融</p><p className="font-bold text-green-600">{formatMoney(item.derivativeProfit + item.financeCommission)}</p></div>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button onClick={() => handlePriceApproval(item.id, 'requested')} className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-colors">同意 {formatMoney(item.requestedPrice)}</button>
@@ -5067,7 +3631,7 @@ export default function App() {
                             </div>
                             <div className="text-left md:text-right">
                               <p className="text-lg font-black text-red-600">-{item.impact}</p>
-                              <p className="text-[10px] text-slate-400">放任<Term term="CSI">CSI</Term>风险</p>
+                              <p className="text-[10px] text-slate-400">放任CSI风险</p>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -5084,315 +3648,21 @@ export default function App() {
               </div>
             )}
 
-              </>
-            )}
-
-            {activeTab !== 'dashboard' && (
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 min-h-[550px]">
-              <div className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-black text-slate-700">运营提醒</p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {urgentOperationCount > 0 ? `${urgentOperationCount} 项紧急事项待处理` : '暂无紧急事项'} · 未读收件 {unreadInboxCount} 封
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {urgentOperationCount > 0 && (
-                    <button onClick={() => setActiveTab('dashboard')} className="px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-black hover:bg-amber-600">
-                      处理紧急事项
-                    </button>
-                  )}
-                  <button onClick={() => openInboxForDay(null)} className="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-black hover:bg-slate-800">
-                    收件箱 {unreadInboxCount > 0 ? `(${unreadInboxCount})` : ''}
-                  </button>
-                </div>
-              </div>
               
               {/* --- 展厅定价 --- */}
-              {activeTab === 'draft' && (
-                <div className="animate-fade-in space-y-6">
-                  <div className="mb-2 border-b border-slate-100 pb-4">
-                    <h2 className="text-2xl font-bold">汇票管理</h2>
-                    <p className="text-slate-500 text-sm mt-1">集中查看银行承兑汇票、授信占用、到期预警和逾期风险。</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="rounded-xl bg-slate-900 text-white p-5">
-                      <p className="text-xs text-slate-400 font-bold"><Tooltip text="未结清银行承兑汇票的风险敞口，包含未到期尾款和已逾期本金。">汇票风险总额</Tooltip></p>
-                      <p className="text-3xl font-black mt-1">{formatMoney(unpaidDraftAmount)}</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-                      <p className="text-xs text-slate-400 font-bold"><Term term="银行信用">银行信用</Term></p>
-                      <p className={(drafts.bankReputation < 40 ? 'text-red-600' : drafts.bankReputation < 65 ? 'text-amber-600' : 'text-emerald-600') + ' text-3xl font-black mt-1'}>{drafts.bankReputation || 70}</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-                      <p className="text-xs text-slate-400 font-bold"><Tooltip text="已占用承兑汇票专项授信除以银行给你的汇票专项额度。超过80%会显著压缩汇票订车空间。">汇票授信使用率</Tooltip></p>
-                      <p className={(draftCreditUsage > 80 ? 'text-red-600' : draftCreditUsage > 60 ? 'text-amber-600' : 'text-blue-600') + ' text-3xl font-black mt-1'}>{draftCreditUsage.toFixed(0)}%</p>
-                      <p className="text-xs text-slate-400 mt-1">{formatMoney(drafts.creditUsed || 0)} / {formatMoney(drafts.creditLimit || 0)}</p>
-                    </div>
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                      <p className="text-xs text-amber-700 font-bold">最近到期</p>
-                      <p className="text-xl font-black text-amber-900 mt-1">{nearestDraft ? `${nearestDraft.remainingDays}天后` : '暂无'}</p>
-                      {nearestDraft && <p className="text-xs text-amber-700 mt-1">{nearestDraft.carModel} · {formatMoney(nearestDraft.amount * 0.8)}</p>}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h3 className="font-black text-slate-900 mb-4"><Term term="承兑汇票">汇票</Term>列表</h3>
-                    {(warningDrafts.length > 0 || defaultedDrafts.length > 0) && (
-                      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {warningDrafts.slice(0, 4).map(draft => (
-                          <div key={`warn_${draft.id}`} className={(draft.remainingDays <= 3 ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-amber-50 border-amber-200 text-amber-800') + ' rounded-lg border p-3 text-sm'}>
-                            <p className="font-black">{draft.remainingDays <= 3 ? '即将到期' : '7天内到期'} · {draft.carModel}</p>
-                            <p className="text-xs mt-1">D{draft.dueDate?.day} 需准备 {formatMoney((draft.amount || 0) * 0.8)}</p>
-                          </div>
-                        ))}
-                        {defaultedDrafts.slice(0, 4).map(draft => (
-                          <div key={`default_${draft.id}`} className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                            <p className="font-black">逾期未清 · {draft.carModel}</p>
-                            <p className="text-xs mt-1">本金 {formatMoney(draft.overduePrincipal || 0)}，罚息 {formatMoney(draft.overduePenalty || 0)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {activeDraftList.length === 0 ? (
-                      <p className="text-sm text-slate-400 text-center py-8">暂无未结清汇票。订车时选择3个月或6个月汇票后会出现在这里。</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {activeDraftList.map(draft => {
-                          const remaining = draft.status === 'active' ? getDraftRemainingDays(draft) : 0;
-                          const statusTone = draft.status === 'defaulted' ? 'bg-red-50 text-red-700 border-red-200' : remaining <= 3 ? 'bg-orange-50 text-orange-700 border-orange-200' : remaining <= 7 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                          return (
-                            <div key={draft.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                                <div>
-                                  <p className="font-black text-slate-900">{draft.carModel} ×{draft.carCount}</p>
-                                  <p className="text-xs text-slate-500 mt-1">票号 {draft.id} · 开票 M{draft.issueDate?.month} D{draft.issueDate?.day} · 到期 M{draft.dueDate?.month} D{draft.dueDate?.day}</p>
-                                  <p className="text-xs text-slate-500 mt-1">保证金 {formatMoney(draft.deposit || 0)} · 手续费 {formatMoney(draft.bankFee || 0)} · 尾款 {formatMoney((draft.amount || 0) * 0.8)}</p>
-                                </div>
-                                <div className="text-left md:text-right">
-                                  <span className={'inline-flex px-2 py-1 rounded-full border text-xs font-black ' + statusTone}>
-                                    {draft.status === 'defaulted' ? '已逾期' : remaining <= 3 ? '即将到期' : remaining <= 7 ? '7天内到期' : '正常'}
-                                  </span>
-                                  <p className="text-lg font-black text-slate-900 mt-2">{formatMoney(draft.status === 'defaulted' ? (draft.overduePrincipal || 0) + (draft.overduePenalty || 0) : draft.amount || 0)}</p>
-                                  {draft.status === 'defaulted' && (
-                                    <button onClick={() => handleRepayOverdueDraft(draft.id)} className="mt-2 px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-black hover:bg-red-700">还款逾期汇票</button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'finance' && (
-                <div className="space-y-6">
-                  <div className="mb-2 border-b border-slate-100 pb-4">
-                    <h2 className="text-2xl font-bold">总经理办公室</h2>
-	                    <p className="text-slate-500 text-sm mt-1">个人财富、<Term term="垫资">垫资</Term>能力和<Term term="承兑汇票">银行承兑汇票</Term>都会直接影响公司的现金安全。</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="bg-slate-900 text-white rounded-xl p-5 shadow-sm">
-                      <p className="text-xs font-bold text-slate-400 mb-1">个人账户</p>
-                      <p className="text-3xl font-black">{formatMoney(gmWealth.personalAccount)}</p>
-                      <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-                        <div><p className="text-slate-400">月薪</p><p className="font-bold">{formatMoney(gmWealth.monthlySalary)}</p></div>
-                        <div><p className="text-slate-400">累计收入</p><p className="font-bold">{formatMoney(gmWealth.totalEarned)}</p></div>
-                        <div><p className="text-slate-400">累计分红</p><p className="font-bold">{formatMoney(gmWealth.totalDividend)}</p></div>
-	                        <div><p className="text-slate-400"><Term term="GM士气">GM士气</Term></p><p className="font-bold">{gmWealth.morale || 80}/100</p></div>
-	                        <div><p className="text-slate-400"><Term term="垫资">待还垫资</Term></p><p className="font-bold">{formatMoney(gmWealth.outstandingBailout || 0)}</p></div>
-                        <div><p className="text-slate-400">预估分红率</p><p className="font-bold">{Math.round((gmWealth.dividendRate || 0.08) * 100)}%</p></div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="text-xs font-bold text-slate-400">薪资调整</p>
-                          <p className="text-xl font-black text-slate-900">{formatMoney(gmWealth.monthlySalary)}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleAdjustGmSalary(-0.2)} disabled={(gmWealth.monthlySalary || 0) <= 766} className="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 disabled:opacity-40">-20%</button>
-                          <button onClick={() => handleAdjustGmSalary(0.2)} disabled={(gmWealth.monthlySalary || 0) >= 60000} className="px-3 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-40">+20%</button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500">月薪范围：¥766 ~ ¥60,000。每个新月第一天自动从公司现金发放到个人账户，并计入人工成本。</p>
-                      {(gmWealth.monthlySalary || 0) <= 766 && <p className="text-xs text-amber-600 font-bold mt-2">根据劳动法规定，总经理月薪不得低于当地最低工资标准（¥766/月）。</p>}
-                      <div className="mt-4 space-y-2">
-                        {(gmWealth.salaryHistory || []).slice(0, 3).map((item, idx) => (
-                          <div key={`${item.month}_${idx}`} className="text-xs flex justify-between rounded-lg bg-slate-50 px-3 py-2">
-                            <span>M{item.month} {item.reason}</span>
-                            <span className="font-bold">{formatMoney(item.oldSalary)} → {formatMoney(item.newSalary)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={'rounded-xl p-5 shadow-sm border ' + (cashCoverageDays < 7 ? 'bg-red-50 border-red-200' : cashCoverageDays < 15 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200')}>
-	                      <p className="text-xs font-bold text-slate-500"><Term term="垫资">垫资救急</Term></p>
-                      <p className="text-xl font-black text-slate-900 mt-1">{formatMoney(gmWealth.outstandingBailout || 0)}</p>
-                      <p className="text-xs text-slate-600 mt-1">公司现金可覆盖约 {cashCoverageDays} 天日常支出；超过安全线后会自动归还垫资。</p>
-                      <div className="grid grid-cols-3 gap-2 mt-4">
-                        {[10000, 50000, 100000].map(amount => (
-                          <button key={amount} onClick={() => handlePersonalBailout(amount)} disabled={(gmWealth.personalAccount || 0) * 0.9 < amount} className="py-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
-                            垫{formatMoney(amount)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-                        <p className="text-xs text-slate-400">本年累计净利润</p>
-                        <p className={(gmWealth.yearlyNetProfit || 0) >= 0 ? 'text-xl font-black text-emerald-600' : 'text-xl font-black text-red-600'}>{formatMoney(gmWealth.yearlyNetProfit || 0)}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-                        <p className="text-xs text-slate-400">投资人评分样本</p>
-                        <p className="text-xl font-black text-slate-800">{(gmWealth.investorScoreHistory || []).length} / 12</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-                        <p className="text-xs text-slate-400">年终分红规则</p>
-                        <p className="text-xs font-bold text-slate-700 mt-1">平均分≥85为12%，70-84为8%，55-69为5%。</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                      <div>
-                        <h3 className="font-bold text-lg text-violet-950 mb-1">💼 投资人授权与外部谈判</h3>
-                        <p className="text-sm text-violet-800">你以运营总经理身份对厂家、银行和投资人发起谈判，选择固定口径后按概率判定。</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 shrink-0 text-center">
-                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
-	                          <p className="text-[10px] text-slate-400"><Term term="投资人信任">信任度</Term></p>
-                          <p className="text-lg font-black text-violet-700">{investorRelations.trust}</p>
-                        </div>
-                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
-                          <p className="text-[10px] text-slate-400">上次评价</p>
-                          <p className="text-lg font-black text-slate-800">{investorRelations.lastScore ?? '--'}</p>
-                        </div>
-                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
-                          <p className="text-[10px] text-slate-400">预算状态</p>
-                          <p className="text-xs font-black text-violet-700">{investorRelations.budgetStatus}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white/70 rounded-lg border border-violet-100 p-3 mb-4">
-                      <p className="text-xs text-slate-600 leading-relaxed">{investorRelations.lastComment}</p>
-                      {investorRelations.orderRestrictionUntil >= day && <p className="text-xs text-red-600 font-bold mt-2">订车限制生效中：D{((investorRelations.orderRestrictionUntil - 1) % 30) + 1}前单次订车不得超过2台。</p>}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                      <button onClick={() => openNegotiation('manufacturer_subsidy')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
-                        <p className="text-xs font-black text-slate-800">厂家长库龄补贴</p>
-                        <p className="text-[10px] text-slate-500 mt-1">清库返利入池</p>
-                      </button>
-                      <button onClick={() => openNegotiation('bank_credit')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
-	                          <p className="text-xs font-black text-slate-800">银行临时<Term term="授信">授信</Term></p>
-                        <p className="text-[10px] text-slate-500 mt-1">提升融资额度</p>
-                      </button>
-                      <button onClick={() => openNegotiation('investor_cash')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
-                        <p className="text-xs font-black text-slate-800">投资人追加现金</p>
-                        <p className="text-[10px] text-slate-500 mt-1">换取缓冲</p>
-                      </button>
-                      <button onClick={() => openNegotiation('marketing_support')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
-                        <p className="text-xs font-black text-slate-800">厂家营销支持</p>
-                        <p className="text-[10px] text-slate-500 mt-1">区域线索资源</p>
-                      </button>
-                      <button onClick={() => openNegotiation('loss_explain')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
-                        <p className="text-xs font-black text-slate-800">解释本月亏损</p>
-                        <p className="text-[10px] text-slate-500 mt-1">修复信任</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <span className="font-bold">利润表、现金流量表和趋势图在“报表”；返利与汇票分别进入对应子页。</span>
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => setActiveTab('reports')} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700">查看财务报表</button>
-                      <button onClick={() => setActiveTab('draft')} className="px-3 py-2 rounded-lg bg-white border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50">查看汇票风险</button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-bold text-slate-700">个人财富里程碑</span>
-                      <span className="text-slate-500">{formatMoney(gmWealth.personalAccount)} / ¥1,000,000</span>
-                    </div>
-                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, ((gmWealth.personalAccount || 0) / 1000000) * 100)}%` }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'sprint' && (
-                <div className="animate-fade-in space-y-6">
-                  <div className="mb-2 border-b border-slate-100 pb-4">
-                    <h2 className="text-2xl font-bold">月底冲刺</h2>
-	                  <p className="text-slate-500 text-sm mt-1">销售运营里的高风险冲量工具。<Term term="虚出">虚出</Term>能补账面销量和<Term term="返利池">返利池</Term>，但会留下<Term term="浮库">浮库</Term>和厂家稽核风险。</p>
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                      <div>
-	                        <h3 className="font-black text-slate-900"><Term term="月结">月底</Term>冲刺操作台</h3>
-	                        <p className="text-xs text-slate-500 mt-1">D25-D28开放。<Term term="虚出">虚出</Term>车辆会从可售库存移入<Term term="浮库">浮库</Term>，后续真实成交优先消化。</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={(virtualSales.suspicionLevel || 0) >= 70 ? 'text-xl font-black text-red-600' : (virtualSales.suspicionLevel || 0) >= 40 ? 'text-xl font-black text-amber-600' : 'text-xl font-black text-emerald-600'}>{virtualSales.suspicionLevel || 0}/100</p>
-                        <p className="text-[10px] text-slate-400">厂家怀疑度</p>
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-700 mb-4">
-                      虚出操作存在风险：虚出车辆占用资金、可能被厂家抽查罚款、多次违规将面临退网。当前厂家怀疑度：{virtualSales.suspicionLevel || 0}/100
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100"><p className="text-xs text-slate-400">销量进度</p><p className="font-black text-slate-800">{monthlyStats.sales}/{monthlyStats.target}</p></div>
-                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100"><p className="text-xs text-slate-400">任务缺口</p><p className="font-black text-amber-600">{Math.max(0, monthlyStats.target - monthlyStats.sales)} 台</p></div>
-	                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100"><p className="text-xs text-slate-400"><Term term="浮库">当前浮库</Term></p><p className="font-black text-red-600">{(virtualSales.virtualCars || []).length} 台</p></div>
-	                      <div className="rounded-lg bg-slate-50 p-3 border border-slate-100"><p className="text-xs text-slate-400"><Term term="虚出">虚出</Term>返利累计</p><p className="font-black text-green-600">{formatMoney(virtualSales.rebateEarnedFromVirtual || 0)}</p></div>
-                    </div>
-                    {dayOfMonth >= 25 && dayOfMonth <= 28 ? (
-                      <div className="space-y-3">
-                        {CAR_MODELS.filter(model => inventory.some(car => car.modelId === model.id)).map(model => {
-                          const count = inventory.filter(car => car.modelId === model.id).length;
-                          return (
-                            <div key={model.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-center rounded-lg border border-slate-100 bg-slate-50 p-3">
-                              <div>
-                                <p className="font-bold text-sm text-slate-800">{model.name}</p>
-                                <p className="text-xs text-slate-500">库存{count}台 · 单台返利{formatMoney(getDynamicRebate(model.id))}</p>
-                              </div>
-                              <input type="number" min="0" max={count} value={virtualPlan[model.id] || 0} onChange={e => setVirtualPlan(prev => ({ ...prev, [model.id]: Math.max(0, Math.min(count, parseInt(e.target.value, 10) || 0)) }))} className="w-24 rounded-lg border border-slate-300 p-2 text-center font-bold" />
-                              <p className="text-xs text-slate-500">怀疑度 +{(virtualPlan[model.id] || 0) * 5}</p>
-                            </div>
-                          );
-                        })}
-                        <button onClick={handleVirtualSprint} disabled={inventory.length === 0} className="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-black disabled:opacity-40 disabled:cursor-not-allowed">确认虚出（风险自负）</button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">月底冲刺窗口尚未开启，D25-D28可操作。</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'showroom' && (
                 <div>
                   <div className="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
                     <div>
                       <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Store /> 展厅布局与定价</h2>
-	                      <p className="text-slate-500 text-sm mt-1">展车提升<Term term="销售转化率">转化率</Term>+12%，展厅车型多样性增加自然客流。<Term term="仓储区">仓储</Term>车辆每日产生¥50/台成本。</p>
+                      <p className="text-slate-500 text-sm mt-1">展车提升转化率+12%，展厅车型多样性增加自然客流。仓储车辆每日产生¥50/台成本。</p>
                     </div>
                     <div className="text-right space-y-1">
                       <p className="text-sm font-bold text-slate-700">
-	                        <Term term="展厅展位">展厅展位</Term>: <span className="text-blue-600">{inventory.filter(c => c.location === 'showroom').length}</span> / {facility.showroomSpots}
-	                        <span className="mx-2 text-slate-300">|</span>
-	                        <Term term="仓储区">仓储区</Term>: <span className="text-amber-600">{inventory.filter(c => c.location === 'warehouse').length}</span> / {facility.warehouseCapacity}
+                        展厅展位: <span className="text-blue-600">{inventory.filter(c => c.location === 'showroom').length}</span> / {facility.showroomSpots}
+                        <span className="mx-2 text-slate-300">|</span>
+                        仓储区: <span className="text-amber-600">{inventory.filter(c => c.location === 'warehouse').length}</span> / {facility.warehouseCapacity}
                       </p>
                       <button onClick={handleAutoShowroom} className="text-xs px-3 py-1.5 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold transition-colors">
                         🏪 一键布展
@@ -5577,7 +3847,6 @@ export default function App() {
                           <div key={order.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-amber-100">
                             <div>
                               <p className="font-bold text-sm text-slate-700">{order.modelName} × {order.quantity} ({order.color}色)</p>
-                              <p className="text-[10px] text-slate-400">{order.paymentMethod === 'cash' ? '现金采购' : order.paymentMethod === 'loan' ? '库存融资采购' : order.paymentMethod === 'draft6' ? '6个月汇票采购' : '3个月汇票采购'}{order.draftId ? ` · ${order.draftId}` : ''}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-xs text-amber-600 font-bold">
@@ -5610,7 +3879,7 @@ export default function App() {
                                   <p className="flex justify-between"><span>官方指导价:</span> <span className="font-bold text-slate-700">¥{getDynamicMsrp(model.id).toLocaleString()}</span></p>
                                 </div>
                                 <div className="flex flex-col gap-2 relative z-10 mt-auto">
-                                  <button onClick={() => setOrderForm({ isOpen: true, model: model, quantity: 1, color: '黑', paymentMethod: 'draft3' })} className="w-full py-2.5 bg-slate-800 text-white rounded hover:bg-slate-700 text-sm font-bold shadow-sm transition-colors">
+                                  <button onClick={() => setOrderForm({ isOpen: true, model: model, quantity: 1, color: '黑', useLoan: false })} className="w-full py-2.5 bg-slate-800 text-white rounded hover:bg-slate-700 text-sm font-bold shadow-sm transition-colors">
                                     配置并采购车辆
                                   </button>
                                 </div>
@@ -5737,7 +4006,7 @@ export default function App() {
                   )}
 
                   {/* 客户分层漏斗 */}
-	                  <h3 className="font-bold text-slate-700 mb-4">客户分层漏斗</h3>
+                  <h3 className="font-bold text-slate-700 mb-4">客户分层漏斗</h3>
                   <div className="relative pt-4 pb-8 max-w-md mx-auto">
                     <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-full flex flex-col items-center opacity-10 pointer-events-none justify-center gap-1">
                       <div className="w-full h-1/5 bg-blue-500 rounded-t-xl"></div>
@@ -5749,7 +4018,7 @@ export default function App() {
                     <div className="relative z-10 space-y-5">
                       {/* 线索池 */}
                       <div className="bg-white border-2 border-slate-200 rounded-lg p-4 text-center shadow-sm relative">
-	                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">📞 <Term term="线索">线索池</Term> (Leads)</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">📞 线索池 (Leads)</p>
                         <p className="text-3xl font-black text-blue-600">{totalLeadPool} <span className="text-sm font-normal text-slate-500">待跟进</span></p>
                         <p className="text-xs text-slate-400 mt-1">本月累计获取: {monthlyStats.leads} {monthlyStats.recoveredLeads > 0 && <span className="text-emerald-500">(含老客回收 {monthlyStats.recoveredLeads})</span>}</p>
                         <div className="grid grid-cols-4 gap-1 mt-3">
@@ -5764,9 +4033,9 @@ export default function App() {
                       </div>
                       {/* DCC邀约到店 */}
                       <div className="bg-white border-2 border-slate-200 rounded-lg p-4 text-center shadow-sm w-11/12 mx-auto relative">
-	                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">📞 <Term term="DCC">DCC</Term><Term term="邀约到店率">邀约到店</Term></p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">📞 DCC邀约到店</p>
                         <p className="text-2xl font-black text-indigo-600">{monthlyStats.dccWalkIns || 0} <span className="text-sm font-normal text-slate-500">批</span></p>
-	                        <p className="text-xs text-slate-400 mt-1"><Term term="邀约到店率">邀约率</Term>: {monthlyStats.leads > 0 ? ((monthlyStats.dccWalkIns / monthlyStats.leads) * 100).toFixed(1) : 0}% | <Term term="DCC">DCC专员</Term>: {dccCount}人</p>
+                        <p className="text-xs text-slate-400 mt-1">邀约率: {monthlyStats.leads > 0 ? ((monthlyStats.dccWalkIns / monthlyStats.leads) * 100).toFixed(1) : 0}% | DCC专员: {dccCount}人</p>
                         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-slate-300 text-lg">↓</div>
                       </div>
                       {/* 自然进店 */}
@@ -5780,7 +4049,7 @@ export default function App() {
                       <div className="bg-white border-2 border-green-200 rounded-lg p-4 text-center shadow-sm w-3/5 mx-auto">
                         <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">✅ 销售成交</p>
                         <p className="text-3xl font-black text-green-600">{monthlyStats.sales} <span className="text-sm font-normal text-slate-500">台</span></p>
-	                        <p className="text-xs text-slate-400 mt-1"><Term term="销售转化率">转化率</Term>: {monthlyStats.walkIns > 0 ? ((monthlyStats.sales / monthlyStats.walkIns) * 100).toFixed(1) : 0}% | 接待上限: {salesCount * 5}批/天</p>
+                        <p className="text-xs text-slate-400 mt-1">转化率: {monthlyStats.walkIns > 0 ? ((monthlyStats.sales / monthlyStats.walkIns) * 100).toFixed(1) : 0}% | 接待上限: {salesCount * 5}批/天</p>
                       </div>
                     </div>
                   </div>
@@ -5806,9 +4075,9 @@ export default function App() {
                       <h2 className="text-2xl font-bold flex items-center gap-2">👤 重点客户谈判</h2>
                       <p className="text-slate-500 text-sm mt-1">销售团队每天从到店客流中筛出重点客户。你来决定守价、让利、金融锁客还是放弃。</p>
                     </div>
-	                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700">
-	                      待谈判 {customerDeals.filter(item => item.status === 'pending').length} 位 · 过期自动流失
-	                    </div>
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700">
+                      待谈判 {customerDeals.filter(item => item.status === 'pending').length} 位 · 过期自动流失
+                    </div>
                   </div>
 
                   {customerDeals.filter(item => item.status === 'pending').length === 0 ? (
@@ -5837,12 +4106,12 @@ export default function App() {
                                   <p className="text-xs text-slate-500 mt-1">{item.archetypeDesc}</p>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 text-center min-w-[300px]">
-	                                  <div className="bg-white rounded-lg border border-slate-100 p-2">
-	                                    <p className="text-[10px] text-slate-400"><Term term="金融佣金">金融意向</Term></p>
+                                  <div className="bg-white rounded-lg border border-slate-100 p-2">
+                                    <p className="text-[10px] text-slate-400">金融意向</p>
                                     <p className="text-sm font-black text-indigo-600">{Math.round(item.financeIntent * 100)}%</p>
                                   </div>
-	                                  <div className="bg-white rounded-lg border border-slate-100 p-2">
-	                                    <p className="text-[10px] text-slate-400"><Term term="置换">置换可能</Term></p>
+                                  <div className="bg-white rounded-lg border border-slate-100 p-2">
+                                    <p className="text-[10px] text-slate-400">置换可能</p>
                                     <p className="text-sm font-black text-emerald-600">{Math.round(item.tradeInIntent * 100)}%</p>
                                   </div>
                                   <div className="bg-white rounded-lg border border-slate-100 p-2">
@@ -5874,7 +4143,7 @@ export default function App() {
                               </button>
                               <button onClick={() => handleCustomerDeal(item.id, 'finance')} className="text-left rounded-lg border border-indigo-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50 p-3 transition-colors">
                                 <p className="font-black text-indigo-800">金融方案锁客</p>
-	                                <p className="text-xs text-slate-500 mt-1">用低首付/月供方案提升成交和<Term term="金融佣金">金融佣金</Term>。</p>
+                                <p className="text-xs text-slate-500 mt-1">用低首付/月供方案提升成交和金融佣金。</p>
                                 <p className="text-xs mt-2">成交价 <span className="font-bold">{formatMoney(item.targetPrice)}</span></p>
                                 <p className={(financeProfit >= 0 ? 'text-green-600' : 'text-red-600') + ' text-sm font-black mt-1'}>{formatMoney(financeProfit)}</p>
                               </button>
@@ -5898,84 +4167,19 @@ export default function App() {
                 </div>
               )}
 
-              {/* --- 财务报表 --- */}
-              {activeTab === 'reports' && (
+              {/* --- 衍生与财务 --- */}
+              {activeTab === 'derivative' && (
                 <div className="animate-fade-in">
                   <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
                     <div>
-                      <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Wallet /> 财务</h2>
-                      <p className="text-slate-500 text-sm mt-1">查看利润表、现金流量表、资产负债表和最近12个月趋势。</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-	                      <p className="text-xs font-bold text-slate-400">本月销量/<Term term="厂家任务">厂家任务</Term></p>
-                      <p className="text-3xl font-black text-slate-900 mt-1">{monthlyStats.sales}/{monthlyStats.target}</p>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
-                        <div className={(monthlyStats.sales >= monthlyStats.target ? 'bg-green-500' : 'bg-blue-500') + ' h-full'} style={{ width: `${targetProgress}%` }}></div>
-                      </div>
-	                      <p className="text-xs text-slate-500 mt-2">月底返利按销量达成、过程指标和<Term term="CSI">CSI</Term>折算。</p>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-	                      <p className="text-xs font-bold text-slate-400"><Term term="返利池">返利池</Term></p>
-                      <p className="text-3xl font-black text-green-600 mt-1">{formatMoney(monthlyStats.baseRebatesPool)}</p>
-                      <p className="text-xs text-slate-500 mt-2">上月实发 {formatMoney(monthlyStats.lastMonthPayout)} · 上月达成 {Math.round((monthlyStats.lastMonthAchieve || 0) * 100)}%</p>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-	                      <p className="text-xs font-bold text-slate-400"><Term term="承兑汇票">汇票风险</Term></p>
-                      <p className="text-3xl font-black text-red-600 mt-1">{formatMoney(unpaidDraftAmount)}</p>
-	                      <p className="text-xs text-slate-500 mt-2"><Term term="银行信用">银行信用</Term> {drafts.bankReputation || 70}/100 · 已用<Term term="承兑汇票专项授信">授信</Term> {draftCreditUsage.toFixed(0)}%</p>
-                      {nearestDraft && <p className="text-xs font-bold text-amber-600 mt-1">最近到期：{nearestDraft.remainingDays}天后 {formatMoney(nearestDraft.amount * 0.8)}</p>}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-900 text-white rounded-xl p-5 mb-6 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-4">
-                      <div>
-                        <p className="text-xs font-black text-blue-300">正式战报</p>
-                        <h3 className="text-xl font-black mt-1">月报 / 年报中心</h3>
-                        <p className="text-sm text-slate-300 mt-1">月结后自动沉淀战报，记录销量、净利润、返利、投资人评分和年度累计。</p>
-                      </div>
-                      <div className="text-sm text-slate-300">
-                        已生成 <span className="font-black text-white">{feedbackState.ratingHistory.length}</span> 期月报
-                      </div>
-                    </div>
-                    {feedbackState.ratingHistory.length === 0 ? (
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">暂无月报。完成首次月结后，这里会生成正式经营战报。</div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {[...feedbackState.ratingHistory].slice(-4).reverse().map(report => (
-                          <div key={report.month} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-black text-blue-200">M{report.month} 月报</p>
-                                <h4 className="font-black text-white mt-1">{report.headline}</h4>
-                              </div>
-                              <span className="rounded-full bg-white text-slate-900 px-2 py-1 text-xs font-black">{report.rating?.grade || getRatingMeta(report.score || 0).grade}</span>
-                            </div>
-                            <div className="grid grid-cols-4 gap-2 mt-3 text-xs">
-                              <div><p className="text-slate-400">销量</p><p className="font-black">{report.sales}/{report.target}</p></div>
-                              <div><p className="text-slate-400">净利</p><p className={(report.netProfit || 0) >= 0 ? 'font-black text-emerald-300' : 'font-black text-red-300'}>{formatMoney(report.netProfit || 0)}</p></div>
-                              <div><p className="text-slate-400">返利</p><p className="font-black text-emerald-300">{formatMoney(report.payout || 0)}</p></div>
-                              <div><p className="text-slate-400">评分</p><p className="font-black">{Math.round(report.investorScore || 0)}</p></div>
-                            </div>
-                            {report.badges?.length > 0 && <p className="text-xs text-blue-100 mt-3">徽章：{report.badges.map(item => item.name).join('、')}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="rounded-lg bg-white/10 p-3"><p className="text-[10px] text-slate-400">年度销量</p><p className="font-black">{feedbackState.ratingHistory.reduce((sum, item) => sum + (item.sales || 0), 0)}台</p></div>
-                      <div className="rounded-lg bg-white/10 p-3"><p className="text-[10px] text-slate-400">年度净利润</p><p className="font-black">{formatMoney(feedbackState.ratingHistory.reduce((sum, item) => sum + (item.netProfit || 0), 0))}</p></div>
-                      <div className="rounded-lg bg-white/10 p-3"><p className="text-[10px] text-slate-400">A/S月评</p><p className="font-black">{excellentMonthCount}次</p></div>
-                      <div className="rounded-lg bg-white/10 p-3"><p className="text-[10px] text-slate-400">当前净资产</p><p className="font-black">{formatMoney(ownerEquity)}</p></div>
+                      <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Shield /> 衍生业务与财务管理</h2>
+                      <p className="text-slate-500 text-sm mt-1">制定衍生业务采购策略，核算本月财务盈亏损益 (GP1/GP2/GP3)。</p>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-6 shadow-sm">
-	                    <h3 className="font-bold text-lg text-blue-900 mb-1 flex items-center gap-2"><Icons.Shield /> <Term term="衍生业务">衍生业务</Term>采购策略 (高毛利板块)</h3>
-	                    <p className="text-xs text-blue-700 mb-4">前端卖车往往倒挂亏本，必须配合销售<Term term="衍生业务">衍生业务</Term>来弥补毛利。根据厂家政策合理分配原厂件比例。</p>
+                    <h3 className="font-bold text-lg text-blue-900 mb-1 flex items-center gap-2"><Icons.Shield /> 衍生业务采购策略 (高毛利板块)</h3>
+                    <p className="text-xs text-blue-700 mb-4">前端卖车往往倒挂亏本，必须配合销售衍生业务来弥补毛利。根据厂家政策合理分配原厂件比例。</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                       <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2">保险代理业务</h4>
@@ -5983,7 +4187,7 @@ export default function App() {
                         <div className="w-full py-2 bg-slate-100 text-slate-500 text-sm font-bold text-center rounded">策略固定 (无法更改)</div>
                       </div>
                       <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm">
-	                        <h4 className="font-bold text-slate-800 mb-2"><Term term="精品">精品</Term>装潢采购</h4>
+                        <h4 className="font-bold text-slate-800 mb-2">精品装潢采购</h4>
                         <p className="text-xs text-slate-500 leading-relaxed mb-3 h-10">原厂精品信任度高但毛利低；三方副厂件难推销但利润极高。</p>
                         <div className="flex bg-slate-100 p-1 rounded-lg">
                           <button onClick={() => handleStrategyChange('accessories', 'OEM')} className={'flex-1 text-sm py-1.5 rounded-md font-bold transition-all  ' + (strategy.accessories === 'OEM' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>原厂采购</button>
@@ -5991,7 +4195,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm">
-	                        <h4 className="font-bold text-slate-800 mb-2"><Term term="延保">延长保修</Term>采购</h4>
+                        <h4 className="font-bold text-slate-800 mb-2">延长保修采购</h4>
                         <p className="text-xs text-slate-500 leading-relaxed mb-3 h-10">原厂延保客单价高客户易接受；三方延保难推销但利润率夸张。</p>
                         <div className="flex bg-slate-100 p-1 rounded-lg">
                           <button onClick={() => handleStrategyChange('warranty', 'OEM')} className={'flex-1 text-sm py-1.5 rounded-md font-bold transition-all  ' + (strategy.warranty === 'OEM' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>原厂延保</button>
@@ -5999,9 +4203,9 @@ export default function App() {
                         </div>
                       </div>
                       
-	                      <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm md:col-span-3 mt-2">
-	                        <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Icons.Bank /> 银企关系与动态<Term term="库存融资授信">授信</Term></h4>
-	                        <p className="text-sm text-slate-500 mb-3">银行是"晴天送伞、雨天收伞"。您的<Term term="库存融资授信">库存融资授信</Term>额度将在每月最后一天重新评估，取决于您的【展厅硬件级别】、【上月营业收入】与【账上自有资金】。</p>
+                      <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm md:col-span-3 mt-2">
+                        <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Icons.Bank /> 银企关系与动态授信</h4>
+                        <p className="text-sm text-slate-500 mb-3">银行是"晴天送伞、雨天收伞"。您的库存融资授信额度将在每月最后一天重新评估，取决于您的【展厅硬件级别】、【上月营业收入】与【账上自有资金】。</p>
                         <div className="flex flex-col md:flex-row justify-between items-center bg-slate-50 p-4 rounded-lg border border-slate-200 gap-4">
                           <div className="flex-1">
                             <p className="text-xs text-slate-500 mb-1">当前评估公式</p>
@@ -6018,141 +4222,42 @@ export default function App() {
 
                   <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
                     <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-	                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Icons.Wallet /> 本月财务损益表 (<Tooltip text="GP1是新车进销差，GP2叠加厂家返利，GP3再叠加金融、精品、延保、二手车和售后等综合毛利。">GP1/GP2/GP3</Tooltip>)</h3>
+                      <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Icons.Wallet /> 本月财务损益表 (GP1/GP2/GP3)</h3>
                       <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100">随日常经营实时更新</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {[
-                        ['profit', '利润表'],
-                        ['cashflow', '现金流量表'],
-                        ['balance', '资产负债表'],
-                        ['trend', '趋势图'],
-                      ].map(([id, label]) => (
-                        <button key={id} onClick={() => setFinanceReportView(id)} className={'px-3 py-2 rounded-lg text-xs font-bold border transition-colors ' + (financeReportView === id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50')}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    {financeReportView === 'profit' && <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-	                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-slate-500">新车营业收入（真实）</span><span className="font-bold text-slate-800">{formatMoney(realRevenueView)}</span></div>
-                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-red-500"><Tooltip text="虚出只增加账面销量和返利池，不代表真实回款；后续真实卖出时才形成现金收入。">新车账面收入（虚出）</Tooltip></span><span className="font-bold text-red-500">{formatMoney(virtualRevenueView)}</span></div>
-                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-slate-500">新车营业成本（真实）</span><span className="font-bold text-red-500">-{formatMoney(realCogsView)}</span></div>
-	                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-red-500"><Term term="虚出">虚出</Term>车辆成本风险</span><span className="font-bold text-red-500">-{formatMoney(virtualCogsView)}</span></div>
-	                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center mb-3"><span className="font-bold text-slate-700"><Term term="GP1">GP1</Term> (新车进销差)</span><span className={'text-lg font-bold  ' + (gp1 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp1)}</span></div>
-                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-slate-500">厂家返利（真实销量）</span><span className="font-bold text-green-500">+{formatMoney(realRebateView)}</span></div>
-                        <div className="flex justify-between items-center text-sm mb-3"><span className="text-red-500"><Tooltip text="来自虚出冲量的返利入池，稽核风险更高，被查后可能罚款或取消返利。">厂家返利（虚出冲量）</Tooltip></span><span className="font-bold text-red-500">+{formatMoney(virtualRebateView)}</span></div>
-	                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center"><span className="font-bold text-slate-800"><Term term="GP2">GP2</Term> (进销差+返利)</span><span className={'text-xl font-black  ' + (gp2 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp2)}</span></div>
+                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-slate-500">新车营业收入</span><span className="font-bold text-slate-800">{formatMoney(monthlyStats.revenue)}</span></div>
+                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-slate-500">新车营业成本</span><span className="font-bold text-red-500">-{formatMoney(monthlyStats.cogs)}</span></div>
+                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center mb-3"><span className="font-bold text-slate-700">GP1 (新车进销差)</span><span className={'text-lg font-bold  ' + (gp1 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp1)}</span></div>
+                        <div className="flex justify-between items-center text-sm mb-3"><span className="text-slate-500">预期最高返利池 (基准值)</span><span className="font-bold text-green-500">+{formatMoney(monthlyStats.baseRebatesPool)}</span></div>
+                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center"><span className="font-bold text-slate-800">GP2 (进销差+返利)</span><span className={'text-xl font-black  ' + (gp2 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp2)}</span></div>
                       </div>
-	                      <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-	                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-3">
-		                        <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium"><Term term="衍生业务">衍生业务</Term>总收入 (保/延/精)</span><span className="font-bold text-blue-800">+{formatMoney(monthlyStats.derivativeRevenue)}</span></div>
-		                        <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium"><Term term="衍生业务">衍生业务</Term>总成本</span><span className="font-bold text-red-400">-{formatMoney(monthlyStats.derivativeCost)}</span></div>
-	                          <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium"><Term term="金融佣金">金融按揭佣金</Term></span><span className="font-bold text-green-600">+{formatMoney(financeIncome)}</span></div>
-	                          <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium">二手车实现毛利</span><span className={'font-bold ' + (usedCarProfit >= 0 ? 'text-green-600' : 'text-red-600')}>{usedCarProfit >= 0 ? '+' : ''}{formatMoney(usedCarProfit)}</span></div>
-	                          <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium">售后毛利</span><span className={'font-bold ' + (afterSalesProfit >= 0 ? 'text-green-600' : 'text-red-600')}>{afterSalesProfit >= 0 ? '+' : ''}{formatMoney(afterSalesProfit)}</span></div>
-	                          <div className="flex justify-between items-center text-sm"><span className="text-blue-800 font-medium"><Term term="续保">续保佣金</Term></span><span className="font-bold text-green-600">+{formatMoney(renewalIncome)}</span></div>
-	                        </div>
-		                      <div className="pt-3 border-t border-blue-200 flex justify-between items-center"><span className="font-bold text-blue-900"><Term term="GP3">GP3</Term> (全业务综合毛利)</span><span className={'text-xl font-black  ' + (gp3 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp3)}</span></div>
-	                      </div>
+                      <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                        <div className="flex justify-between items-center text-sm mb-2"><span className="text-blue-800 font-medium">衍生业务总收入 (保/延/精)</span><span className="font-bold text-blue-800">+{formatMoney(monthlyStats.derivativeRevenue)}</span></div>
+                        <div className="flex justify-between items-center text-sm mb-3"><span className="text-blue-800 font-medium">衍生业务总成本</span><span className="font-bold text-red-400">-{formatMoney(monthlyStats.derivativeCost)}</span></div>
+                        <div className="flex justify-between items-center text-sm mb-3"><span className="text-blue-800 font-medium">二手车实现毛利</span><span className={'font-bold ' + (usedCarProfit >= 0 ? 'text-green-600' : 'text-red-600')}>{usedCarProfit >= 0 ? '+' : ''}{formatMoney(usedCarProfit)}</span></div>
+                        <div className="pt-3 border-t border-blue-200 flex justify-between items-center"><span className="font-bold text-blue-900">GP3 (全业务综合毛利)</span><span className={'text-xl font-black  ' + (gp3 >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(gp3)}</span></div>
+                        <div className="mt-3 pt-3 border-t border-blue-100 flex justify-between items-center text-sm"><span className="text-blue-800 font-medium">金融按揭佣金</span><span className="font-bold text-green-600">+{formatMoney(monthlyStats.financeCommission)}</span></div>
+                      </div>
                       <div className="bg-orange-50/30 p-4 rounded-lg border border-orange-100">
                         <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-3">
                           <div className="flex justify-between items-center text-sm"><span className="text-slate-500">土地租金</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.rent)}</span></div>
                           <div className="flex justify-between items-center text-sm"><span className="text-slate-500">折旧摊销</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.depreciation)}</span></div>
                           <div className="flex justify-between items-center text-sm"><span className="text-slate-500">人工薪酬</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.labor)}</span></div>
                           <div className="flex justify-between items-center text-sm"><span className="text-slate-500">营销投流</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.marketingCost)}</span></div>
-	                          <div className="flex justify-between items-center text-sm"><span className="text-slate-500">仓储成本</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.storageCost || 0)}</span></div>
-                          <div className="col-span-2 border-t border-orange-100 pt-2 mt-1">
-                            <p className="font-black text-slate-700 mb-1">七、财务费用</p>
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                              <div className="flex justify-between"><span className="text-slate-500">汇票手续费</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.draftBankFee || 0)}</span></div>
-                              <div className="flex justify-between"><span className="text-slate-500">逾期罚息</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.draftPenalty || 0)}</span></div>
-                              <div className="flex justify-between"><span className="text-slate-500">贷款利息</span><span className="font-bold text-orange-500">-{formatMoney(Math.max(0, (monthlyStats.financeCost || 0) - (monthlyStats.draftBankFee || 0) - (monthlyStats.draftPenalty || 0) - (monthlyStats.floatingCost || 0)))}</span></div>
-	                              <div className="flex justify-between"><span className="text-slate-500"><Term term="浮库">浮库</Term>占用费</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.floatingCost || 0)}</span></div>
-                            </div>
-                          </div>
-	                          <div className="flex justify-between items-center text-sm col-span-2 border-t border-orange-100 pt-1"><span className="text-slate-500 font-bold"><Term term="OPEX">OPEX</Term> 总计</span><span className="font-bold text-red-600">-{formatMoney(opex)}</span></div>
+                          <div className="flex justify-between items-center text-sm"><span className="text-slate-500">金融利息</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.financeCost)}</span></div>
+                          <div className="flex justify-between items-center text-sm"><span className="text-slate-500">仓储成本</span><span className="font-bold text-orange-500">-{formatMoney(monthlyStats.storageCost || 0)}</span></div>
+                          <div className="flex justify-between items-center text-sm"><span className="text-slate-500">售后毛利</span><span className={'font-bold  ' + (monthlyStats.afterSalesRevenue - monthlyStats.afterSalesCost >= 0 ? 'text-green-600' : 'text-red-600')}>{monthlyStats.afterSalesRevenue - monthlyStats.afterSalesCost >= 0 ? '+' : ''}{formatMoney(monthlyStats.afterSalesRevenue - monthlyStats.afterSalesCost)}</span></div>
+                          <div className="flex justify-between items-center text-sm col-span-2 border-t border-orange-100 pt-1"><span className="text-slate-500 font-bold">OPEX 总计</span><span className="font-bold text-red-600">-{formatMoney(opex)}</span></div>
                         </div>
                         <div className="pt-3 border-t-2 border-orange-200 flex justify-between items-center">
                           <span className="font-bold text-lg text-slate-800">预期经营净利润 (Net Profit)</span>
                           <span className={'text-2xl font-black  ' + (netProfit >= 0 ? 'text-green-600' : 'text-red-600')}>{formatMoney(netProfit)}</span>
                         </div>
                       </div>
-                    </div>}
-                    {financeReportView === 'cashflow' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                          <h4 className="font-black text-slate-800 mb-3">经营活动现金流</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>现金收入</span><span className="font-bold text-green-600">+{formatMoney(ledgerIncome)}</span></div>
-                            <div className="flex justify-between"><span>经营支出</span><span className="font-bold text-red-600">-{formatMoney(ledgerExpense)}</span></div>
-                            <div className="flex justify-between border-t pt-2"><span className="font-bold">本月账面净现金流</span><span className={(ledgerIncome - ledgerExpense) >= 0 ? 'font-black text-green-600' : 'font-black text-red-600'}>{formatMoney(ledgerIncome - ledgerExpense)}</span></div>
-                          </div>
-                        </div>
-                        <div className="rounded-lg border border-amber-100 bg-amber-50 p-4">
-                          <h4 className="font-black text-amber-900 mb-3">汇票与GM资金</h4>
-                          <div className="space-y-2 text-sm">
-	                            <div className="flex justify-between"><span><Term term="承兑汇票">汇票</Term>保证金/手续费</span><span className="font-bold text-red-600">-{formatMoney(draftDepositPaid)}</span></div>
-	                            <div className="flex justify-between"><span><Term term="承兑汇票">汇票</Term>到期兑付</span><span className="font-bold text-red-600">-{formatMoney(draftDuePaid)}</span></div>
-	                            <div className="flex justify-between"><span>GM<Term term="垫资">垫资</Term>入账</span><span className="font-bold text-green-600">+{formatMoney(bailoutIn)}</span></div>
-	                            <div className="flex justify-between"><span>归还GM<Term term="垫资">垫资</Term></span><span className="font-bold text-red-600">-{formatMoney(bailoutRepay)}</span></div>
-	                            <div className="flex justify-between border-t pt-2"><span className="font-bold"><Term term="现金覆盖">现金覆盖天数</Term></span><span className={cashCoverageDays < 15 ? 'font-black text-red-600' : 'font-black text-green-600'}>{cashCoverageDays}天</span></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {financeReportView === 'balance' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                          <h4 className="font-black text-slate-800 mb-3">资产</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>现金及等价物</span><span className="font-bold">{formatMoney(finance.cash)}</span></div>
-                            <div className="flex justify-between"><span>库存车辆（可售）</span><span className="font-bold">{formatMoney(inventoryAssetValue)}</span></div>
-	                            <div className="flex justify-between"><span>库存车辆（<Term term="虚出">虚出</Term>/<Term term="浮库">浮库</Term>）</span><span className="font-bold text-red-600">{formatMoney(virtualInventoryValue)}</span></div>
-                            <div className="flex justify-between"><span>二手车库存</span><span className="font-bold">{formatMoney(usedCarAssetValue)}</span></div>
-                            <div className="flex justify-between border-t pt-2"><span className="font-bold">资产合计</span><span className="font-black">{formatMoney(balanceAssets)}</span></div>
-                          </div>
-                        </div>
-                        <div className="rounded-lg border border-red-100 bg-red-50 p-4">
-                          <h4 className="font-black text-red-900 mb-3">负债与风险</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>银行贷款余额</span><span className="font-bold text-red-600">{formatMoney(finance.loan)}</span></div>
-	                            <div className="flex justify-between"><span>应付<Term term="承兑汇票">汇票</Term>/逾期</span><span className="font-bold text-red-600">{formatMoney(unpaidDraftAmount)}</span></div>
-	                            <div className="flex justify-between"><span>GM待还<Term term="垫资">垫资</Term></span><span className="font-bold text-red-600">{formatMoney(gmWealth.outstandingBailout || 0)}</span></div>
-                            <div className="flex justify-between border-t pt-2"><span className="font-bold">负债合计</span><span className="font-black text-red-600">{formatMoney(balanceLiabilities)}</span></div>
-                            <div className="flex justify-between"><span className="font-bold">所有者权益</span><span className={ownerEquity >= 0 ? 'font-black text-emerald-600' : 'font-black text-red-600'}>{formatMoney(ownerEquity)}</span></div>
-                            <div className="flex justify-between text-xs text-slate-500"><span>资产 = 负债 + 权益</span><span>{formatMoney(balanceLiabilities + ownerEquity)}</span></div>
-	                            <div className="flex justify-between"><span className="font-bold"><Term term="资产负债率">资产负债率</Term></span><span className={debtRatio > 0.8 ? 'font-black text-red-600' : debtRatio > 0.6 ? 'font-black text-amber-600' : 'font-black text-green-600'}>{Math.round(debtRatio * 100)}%</span></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {financeReportView === 'trend' && (
-                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                        <h4 className="font-black text-slate-800 mb-3">最近12个月多指标趋势</h4>
-                        {recentRatingTrend.length === 0 ? (
-                          <p className="text-sm text-slate-400 text-center py-8">暂无历史月报，月底结算后会生成趋势。</p>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {[
-                              { label: '净利润', values: recentRatingTrend.map(item => item.netProfit || 0), color: '#10b981', format: formatMoney },
-                              { label: '销量', values: recentRatingTrend.map(item => item.sales || 0), color: '#2563eb', format: value => `${value}台` },
-                              { label: '投资人评分', values: recentRatingTrend.map(item => item.investorScore || 0), color: '#7c3aed', format: value => `${Math.round(value)}分` },
-	                              { label: 'CSI', values: recentRatingTrend.map(item => item.csiScore || 0), color: '#f59e0b', format: value => `${Math.round(value)}分` },
-                            ].map(metric => (
-                              <div key={metric.label} className="rounded-lg border border-slate-100 bg-white p-3">
-                                <div className="mb-1 flex items-center justify-between">
-	                                  <span className="text-xs font-black text-slate-700">{metric.label === 'CSI' ? <Term term="CSI">CSI</Term> : metric.label}</span>
-                                  <span className="text-xs font-bold text-slate-400">近{metric.values.length}月</span>
-                                </div>
-                                <MiniTrendChart values={metric.values} color={metric.color} formatValue={metric.format} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-	                    <p className="text-xs text-slate-400 mt-3 text-center">注：此报表为经营管理口径，用于看清现金、<Term term="承兑汇票">汇票</Term>、<Term term="浮库">浮库</Term>和<Term term="垫资">垫资</Term>风险，不替代完整会计准则报表。</p>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-3 text-center">注：此净利润仅为理论预期，月底返利池的实际下发金额会受当月销量任务达成率的影响产生大幅波动。</p>
                   </div>
 
                   {/* 财务流水明细 */}
@@ -6194,48 +4299,6 @@ export default function App() {
               )}
 
               {/* --- 人事招聘 --- */}
-              {activeTab === 'facility' && (
-                <div className="animate-fade-in space-y-6">
-                  <div className="mb-2 border-b border-slate-100 pb-4">
-                    <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Store /> 设施升级</h2>
-                    <p className="text-slate-500 text-sm mt-1">展厅展位、库房容量、租金和折旧集中管理。设施升级会提高可展示库存，也会推高固定成本。</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="rounded-xl bg-slate-900 text-white p-5">
-                      <p className="text-xs text-slate-400 font-bold">当前等级</p>
-                      <p className="text-4xl font-black mt-1">Lv.{facility.level}</p>
-                      <p className="text-xs text-slate-400 mt-2">标准奥迪4S店</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-                      <p className="text-xs text-slate-400 font-bold">展厅展位</p>
-                      <p className="text-3xl font-black text-blue-600 mt-1">{facility.showroomSpots}</p>
-                      <p className="text-xs text-slate-400 mt-2">当前已用 {inventory.filter(c => c.location === 'showroom').length}</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-                      <p className="text-xs text-slate-400 font-bold">库房容量</p>
-                      <p className="text-3xl font-black text-amber-600 mt-1">{facility.warehouseCapacity}</p>
-                      <p className="text-xs text-slate-400 mt-2">仓储车 ¥50/天</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-                      <p className="text-xs text-slate-400 font-bold">固定成本</p>
-                      <p className="text-xl font-black text-slate-900 mt-1">{formatMoney((monthlyStats.rent || 0) + (monthlyStats.depreciation || 0))}</p>
-                      <p className="text-xs text-slate-400 mt-2">本月租金+折旧</p>
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <h3 className="font-black text-slate-900">门店硬件升级</h3>
-                        <p className="text-sm text-slate-500 mt-1">每次升级增加 1 个展厅展位和 8 台库房容量。展车提升转化率，库房容量提升订货弹性。</p>
-                      </div>
-                      <button onClick={upgradeFacility} className="px-6 py-3 bg-slate-900 text-white font-black rounded-lg hover:bg-slate-800 transition-colors">
-                        升级 {formatMoney(facility.level * 100000)}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'staff' && (
                 <div className="animate-fade-in">
                   <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
@@ -6283,8 +4346,8 @@ export default function App() {
                           <p className="text-sm text-slate-500">仓储容量: <span className="font-bold text-amber-600">{facility.warehouseCapacity} 台</span></p>
                         </div>
                         <div className="text-right text-xs text-slate-400">
-	                      <p>升级效果: <Term term="展厅展位">展位</Term>+1, <Term term="仓储区">仓储</Term>+8</p>
-	                      <p>展车提升<Term term="销售转化率">转化率</Term>; 仓储车¥50/天</p>
+                          <p>升级效果: 展位+1, 仓储+8</p>
+                          <p>展车提升转化率; 仓储车¥50/天</p>
                         </div>
                       </div>
                       <button onClick={upgradeFacility} className="w-full py-3 bg-slate-800 text-white font-medium rounded-lg hover:bg-slate-700 transition-colors">升级 ({formatMoney(facility.level * 100000)})</button>
@@ -6293,7 +4356,7 @@ export default function App() {
                     {/* DCC 团队 */}
                     <div className="border border-slate-200 rounded-xl p-5">
                       <div className="flex justify-between items-center mb-3">
-	                        <h3 className="font-bold text-lg">📞 <Term term="DCC">DCC</Term> 邀约团队</h3>
+                        <h3 className="font-bold text-lg">📞 DCC 邀约团队</h3>
                         <button onClick={() => hireStaff('dcc')} className="px-3 py-1.5 border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">+招聘</button>
                       </div>
                       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -6764,64 +4827,23 @@ export default function App() {
               )}
 
               {/* --- 返利考核 --- */}
-              {activeTab === 'derivConfig' && (
-                <div className="animate-fade-in space-y-6">
-                  <div className="mb-2 border-b border-slate-100 pb-4">
-                    <h2 className="text-2xl font-bold">金融衍生</h2>
-	                      <p className="text-slate-500 text-sm mt-1">集中配置<Term term="精品">精品</Term>、<Term term="延保">延保</Term>、保险<Term term="续保">续保</Term>和二手车收购策略。这里决定前端低毛利成交能不能被 <Term term="GP3">GP3</Term> 补回来。</p>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
-	                      <h3 className="font-black text-blue-950">保险代理业务</h3>
-                      <p className="text-xs text-blue-700 mt-2 min-h-12">强制合作主流保险公司，渗透率稳定在 80%，保司固定返佣 25%。</p>
-                      <div className="mt-4 rounded-lg bg-white border border-blue-100 p-3 text-sm font-bold text-slate-600 text-center">策略固定</div>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-	                      <h3 className="font-black text-slate-900"><Term term="精品">精品</Term>装潢采购</h3>
-                      <p className="text-xs text-slate-500 mt-2 min-h-12">原厂精品信任度高但毛利低；第三方精品更赚钱但更难成交。</p>
-                      <div className="flex bg-slate-100 p-1 rounded-lg mt-4">
-                        <button onClick={() => handleStrategyChange('accessories', 'OEM')} className={'flex-1 text-sm py-2 rounded-md font-bold transition-all ' + (strategy.accessories === 'OEM' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>原厂采购</button>
-                        <button onClick={() => handleStrategyChange('accessories', '3RD')} className={'flex-1 text-sm py-2 rounded-md font-bold transition-all ' + (strategy.accessories === '3RD' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>第三方采购</button>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-5">
-	                      <h3 className="font-black text-slate-900"><Term term="延保">延长保修</Term>采购</h3>
-                      <p className="text-xs text-slate-500 mt-2 min-h-12">原厂延保客单价高、客户易接受；第三方延保利润高但转化更难。</p>
-                      <div className="flex bg-slate-100 p-1 rounded-lg mt-4">
-                        <button onClick={() => handleStrategyChange('warranty', 'OEM')} className={'flex-1 text-sm py-2 rounded-md font-bold transition-all ' + (strategy.warranty === 'OEM' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>原厂延保</button>
-                        <button onClick={() => handleStrategyChange('warranty', '3RD')} className={'flex-1 text-sm py-2 rounded-md font-bold transition-all ' + (strategy.warranty === '3RD' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200')}>第三方延保</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h3 className="font-black text-slate-900 mb-3">当前衍生贡献</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-	                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3"><p className="text-xs text-slate-400"><Term term="衍生业务">衍生收入</Term></p><p className="font-black text-blue-600">{formatMoney(monthlyStats.derivativeRevenue)}</p></div>
-	                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3"><p className="text-xs text-slate-400"><Term term="衍生业务">衍生成本</Term></p><p className="font-black text-red-600">{formatMoney(monthlyStats.derivativeCost)}</p></div>
-	                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3"><p className="text-xs text-slate-400"><Term term="金融佣金">金融佣金</Term></p><p className="font-black text-emerald-600">{formatMoney(monthlyStats.financeCommission)}</p></div>
-	                      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3"><p className="text-xs text-slate-400"><Term term="续保">续保佣金</Term></p><p className="font-black text-emerald-600">{formatMoney(monthlyStats.insuranceRenewalRevenue)}</p></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'csi' && (
                 <div className="animate-fade-in">
                   <div className="mb-6 border-b border-slate-100 pb-4">
-	                    <h2 className="text-2xl font-bold flex items-center gap-2">📊 <Term term="CSI">CSI</Term>客户满意度管理</h2>
-	                    <p className="text-slate-500 text-sm mt-1"><Term term="CSI">CSI</Term>直接影响<Term term="销售转化率">销售转化率</Term>、<Term term="转介绍">转介绍</Term>线索和月底<Term term="返利系数">返利系数</Term>，是经营健康度的核心指标。</p>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">📊 CSI客户满意度管理</h2>
+                    <p className="text-slate-500 text-sm mt-1">CSI直接影响销售转化率、转介绍线索和月底返利系数，是经营健康度的核心指标。</p>
                   </div>
 
                   {/* CSI 仪表盘 */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className={'rounded-xl p-5 text-center shadow-md border-2 ' + (csi.score >= 95 ? 'bg-green-50 border-green-300' : csi.score >= 90 ? 'bg-blue-50 border-blue-300' : csi.score >= 85 ? 'bg-amber-50 border-amber-300' : 'bg-red-50 border-red-300')}>
-	                      <p className="text-sm text-slate-500 mb-2">当前<Term term="CSI">CSI</Term>分数</p>
+                      <p className="text-sm text-slate-500 mb-2">当前CSI分数</p>
                       <p className={'text-5xl font-black ' + (csi.score < 85 ? 'text-red-600' : csi.score >= 95 ? 'text-green-600' : csi.score >= 90 ? 'text-blue-600' : 'text-amber-600')}>{Math.round(csi.score)}</p>
                       <p className="text-xs text-slate-400 mt-2">满分100 · 厂家考核线90分</p>
                     </div>
                     <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
                       <div>
-	                        <p className="text-sm text-slate-500 mb-3"><Term term="CSI">CSI</Term>等级与业务影响</p>
+                        <p className="text-sm text-slate-500 mb-3">CSI等级与业务影响</p>
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between items-center">
                             <span className="text-green-700 font-bold">≥95 优秀</span>
@@ -6854,7 +4876,7 @@ export default function App() {
                           <p className="text-xs text-slate-400">考核状态</p>
                         </div>
                       </div>
-	                      <p className="text-xs text-slate-400">每次投诉使<Term term="CSI">CSI</Term>下降3-8分，技师水平≥60可减半影响，销售水平≥60可减轻30%影响。</p>
+                      <p className="text-xs text-slate-400">每次投诉使CSI下降3-8分，技师水平≥60可减半影响，销售水平≥60可减轻30%影响。</p>
                     </div>
                   </div>
 
@@ -6885,7 +4907,7 @@ export default function App() {
 
                   {/* CSI 运营操作 */}
                   <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 mb-6 border border-indigo-200 shadow-sm">
-	                    <h3 className="font-bold text-lg mb-4">🛠️ <Term term="CSI">CSI</Term>改善运营</h3>
+                    <h3 className="font-bold text-lg mb-4">🛠️ CSI改善运营</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-white rounded-lg p-4 border border-indigo-100 flex flex-col justify-between">
                         <div>
@@ -6922,12 +4944,12 @@ export default function App() {
                         >投入 ¥1,000 安排回访</button>
                       </div>
                     </div>
-	                    <p className="text-[10px] text-slate-400 mt-3 text-center">提示：提升技师和销售顾问能力可从根本上减少投诉概率，是<Term term="CSI">CSI</Term>的长期保障。</p>
+                    <p className="text-[10px] text-slate-400 mt-3 text-center">💡 提示：提升技师和销售顾问能力可从根本上减少投诉概率，是CSI的长期保障。</p>
                   </div>
 
                   {/* CSI 与销售转化率联动说明 */}
                   <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-	                    <h3 className="font-bold text-lg mb-3">🔗 <Term term="CSI">CSI</Term>如何影响销售</h3>
+                    <h3 className="font-bold text-lg mb-3">🔗 CSI如何影响销售</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs border-collapse">
                         <thead>
@@ -6975,36 +4997,77 @@ export default function App() {
                 </div>
               )}
 
-              {activeTab === 'market' && (
+              {activeTab === 'assessment' && (
                 <div className="animate-fade-in">
-	                  <div className="mb-6 border-b border-slate-100 pb-4">
-	                    <h2 className="text-2xl font-bold">竞品市场</h2>
-	                    <p className="text-slate-500 text-sm mt-1">同城竞品会降价、办活动和截流客户。<Term term="市场份额">市场份额</Term>会在每月月底更新。</p>
-                    {competitors.priceWarActive && <p className="mt-2 inline-flex rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-black text-red-700">本品价格战第{competitors.priceWarRound || 1}轮：毛利、转化和厂家关系承压</p>}
+                  <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
+                    <div>
+                      <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Sparkles /> 返利考核与经营诊断</h2>
+                      <p className="text-slate-500 text-sm mt-1">实时监控厂家任务进度，获取 AI 经营专家的毒舌建议。</p>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-	                      <h3 className="font-black text-slate-900 mb-4"><Term term="市场份额">市场份额</Term>结构</h3>
-                      <div className="flex items-center gap-5">
-                        <MarketSharePie items={marketShareSegments} />
-                        <div className="flex-1 space-y-2">
-                          {marketShareSegments.map(item => (
-                            <div key={item.label} className="flex items-center justify-between text-xs">
-                              <span className="flex items-center gap-2 text-slate-600"><i className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></i>{item.label}</span>
-                              <span className="font-black text-slate-900">{item.value}%</span>
-                            </div>
-                          ))}
+                  {/* AI 顾问 */}
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-5 mb-6 shadow-md border border-slate-700 flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-lg"><Icons.Sparkles /></div>
+                    <div className="flex-1 text-slate-300">
+                      <h3 className="text-white font-bold text-lg mb-1">✨ AI 店总经营顾问</h3>
+                      <p className="text-sm italic mb-2">"{aiAdvice}"</p>
+                    </div>
+                    <button onClick={handleAskAIConsultant} disabled={isGeneratingAdvice} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 shrink-0">
+                      {isGeneratingAdvice ? '分析中...' : '免费咨询建议'}
+                    </button>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-5 mb-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                      <div>
+                        <h3 className="font-bold text-lg text-violet-950 mb-1">💼 投资人授权与外部谈判</h3>
+                        <p className="text-sm text-violet-800">你以运营总经理身份对厂家、银行和投资人发起谈判，选择固定口径后按概率判定。</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 shrink-0 text-center">
+                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
+                          <p className="text-[10px] text-slate-400">信任度</p>
+                          <p className="text-lg font-black text-violet-700">{investorRelations.trust}</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
+                          <p className="text-[10px] text-slate-400">上次评价</p>
+                          <p className="text-lg font-black text-slate-800">{investorRelations.lastScore ?? '--'}</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-violet-100 px-3 py-2">
+                          <p className="text-[10px] text-slate-400">预算状态</p>
+                          <p className="text-xs font-black text-violet-700">{investorRelations.budgetStatus}</p>
                         </div>
                       </div>
                     </div>
-                    <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <h3 className="font-black text-slate-900 mb-3">月度竞争判断</h3>
-	                      <p className="text-sm text-slate-600 leading-6">玩家奥迪当前份额 <b className="text-blue-600">{normalizedMarketShare.audi || 0}%</b>；同城本品店关系 <b>{Math.round(visibleCompetitorStores.filter(s => s.brand === 'audi_local').reduce((sum, s) => sum + (s.relationship || 50), 0) / Math.max(1, visibleCompetitorStores.filter(s => s.brand === 'audi_local').length))}</b>。若价格战持续，厂家会先警告再罚款；若选择关系修复和服务反制，短期销量慢一些，但长期毛利更稳。</p>
-	                      {hiddenCompetitorCount > 0 && <p className="text-xs text-slate-400 mt-2">仍有 {hiddenCompetitorCount} 家低可见度竞品，出现明显降价、活动或线上截流后会进入明细列表。</p>}
+                    <div className="bg-white/70 rounded-lg border border-violet-100 p-3 mb-4">
+                      <p className="text-xs text-slate-600 leading-relaxed">{investorRelations.lastComment}</p>
+                      {investorRelations.orderRestrictionUntil >= day && <p className="text-xs text-red-600 font-bold mt-2">订车限制生效中：D{((investorRelations.orderRestrictionUntil - 1) % 30) + 1}前单次订车不得超过2台。</p>}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                      <button onClick={() => openNegotiation('manufacturer_subsidy')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
+                        <p className="text-xs font-black text-slate-800">厂家长库龄补贴</p>
+                        <p className="text-[10px] text-slate-500 mt-1">清库返利入池</p>
+                      </button>
+                      <button onClick={() => openNegotiation('bank_credit')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
+                        <p className="text-xs font-black text-slate-800">银行临时授信</p>
+                        <p className="text-[10px] text-slate-500 mt-1">提升融资额度</p>
+                      </button>
+                      <button onClick={() => openNegotiation('investor_cash')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
+                        <p className="text-xs font-black text-slate-800">投资人追加现金</p>
+                        <p className="text-[10px] text-slate-500 mt-1">换取缓冲</p>
+                      </button>
+                      <button onClick={() => openNegotiation('marketing_support')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
+                        <p className="text-xs font-black text-slate-800">厂家营销支持</p>
+                        <p className="text-[10px] text-slate-500 mt-1">区域线索资源</p>
+                      </button>
+                      <button onClick={() => openNegotiation('loss_explain')} className="rounded-lg bg-white hover:bg-violet-50 border border-violet-100 p-3 text-left transition-colors">
+                        <p className="text-xs font-black text-slate-800">解释本月亏损</p>
+                        <p className="text-[10px] text-slate-500 mt-1">修复信任</p>
+                      </button>
                     </div>
                   </div>
 
+                  {/* 市场环境 */}
                   <div className="bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200 rounded-xl p-5 mb-6 shadow-sm">
                     <h3 className="font-bold text-lg text-sky-900 mb-3 flex items-center gap-2">🌐 市场环境系统</h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -7014,7 +5077,7 @@ export default function App() {
                         <p className="text-xs text-slate-500 mt-1">{activeRegion.desc}</p>
                       </div>
                       <div className="bg-white p-3 rounded-lg border border-sky-100">
-	                        <p className="text-[10px] text-slate-400 mb-1"><Term term="季节需求">季节需求</Term></p>
+                        <p className="text-[10px] text-slate-400 mb-1">季节需求</p>
                         <p className="text-xl font-black text-sky-700">{marketEnvironment.seasonName} ×{marketEnvironment.seasonIndex.toFixed(2)}</p>
                         <p className="text-xs text-slate-500 mt-1">{marketEnvironment.seasonDesc}</p>
                       </div>
@@ -7039,137 +5102,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-                    {[
-                      ['玩家奥迪', normalizedMarketShare.audi || 0, 'text-blue-600'],
-                      ['宝马系', normalizedMarketShare.bmw || 0, 'text-sky-600'],
-                      ['奔驰系', normalizedMarketShare.benz || 0, 'text-slate-700'],
-                      ['新能源', normalizedMarketShare.ev || 0, 'text-emerald-600'],
-                      ['本品店', normalizedMarketShare.audiLocal || 0, 'text-indigo-600'],
-                      ['其他', normalizedMarketShare.other || 0, 'text-slate-500'],
-                    ].map(([label, value, color]) => (
-                      <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-                        <p className="text-[10px] text-slate-400">{label}</p>
-                        <p className={'text-2xl font-black ' + color}>{value}%</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                    <div className="lg:col-span-2 space-y-3">
-	                      {visibleCompetitorStores.map(store => {
-                        const strategyLabel = COMPETITOR_STRATEGIES.find(s => s.id === store.strategy)?.label || store.strategy;
-                        const threat = (store.customerPull || 0) + Math.max(0, (1 - (store.priceIndex || 1)) * 180) + (store.currentActivity?.pullBoost || 0);
-                        const threatTone = threat >= 90 ? 'text-red-600 bg-red-50 border-red-200' : threat >= 70 ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200';
-                        return (
-                          <div key={store.id} className={'rounded-xl border p-4 shadow-sm ' + (store.currentActivity ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200')}>
-                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                              <div>
-                                <p className="font-black text-slate-900">{store.brand === 'audi_local' ? '同城奥迪' : COMPETITOR_BRANDS[store.brand]?.label} · {store.name}</p>
-	                                <p className="text-xs text-slate-500 mt-1">策略：{strategyLabel} · <Term term="价格指数">价格指数</Term> {(store.priceIndex || 1).toFixed(2)} · 上月销量约{store.monthlySales || 0}台</p>
-                                <p className="text-xs text-slate-600 mt-2">当前动态：{store.currentActivity ? `${store.currentActivity.effect}（剩${store.currentActivity.remainingDays}天）` : store.lastAction}</p>
-                              </div>
-                              <div className="text-right">
-	                                <span className={'inline-flex px-2 py-1 rounded-full border text-xs font-bold ' + threatTone}><Term term="竞品威胁">威胁</Term> {Math.round(threat)}</span>
-                                {store.brand === 'audi_local' && <p className="text-xs text-slate-500 mt-2">关系 {store.relationship}/100</p>}
-                              </div>
-                            </div>
-                            {store.brand === 'audi_local' && (
-                              <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
-                                <div className={(store.relationship >= 70 ? 'bg-emerald-500' : store.relationship >= 50 ? 'bg-amber-500' : 'bg-red-500') + ' h-full'} style={{ width: `${store.relationship || 0}%` }}></div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <h3 className="font-black text-slate-900 mb-3">反制措施</h3>
-                        {[
-                          ['price', '跟价降价', '抢回到店量', 60000],
-                          ['service', '差异化服务', '提升留存转化', 40000],
-	                          ['referral', '老客转介绍', '低成本补客流', 16000],
-                          ['alliance', '联合抗竞', '本品店共同抗外部竞品', 20000],
-                          ['relation', '提升关系', '修复本品店默契', 30000],
-                          ['subsidy', '厂家补贴申请', '季度限次补贴', 0],
-                          ['poach', '反挖人', '削弱竞品团队', 50000],
-                          ['price_war', '价格战宣言', '大幅降价抢量', 90000],
-                          ['csi_push', '提升CSI', '长期口碑反制', 30000],
-                        ].map(([type, name, desc, cost]) => {
-                          const cd = competitors.cooldowns?.[type] || 0;
-                          return (
-                            <button key={type} onClick={() => handleCompetitorCountermeasure(type)} disabled={cd > 0 || finance.cash < cost} className="w-full text-left rounded-lg border border-slate-200 p-3 mb-2 hover:bg-blue-50 hover:border-blue-200 disabled:opacity-40 disabled:cursor-not-allowed">
-                              <div className="flex justify-between gap-3">
-                                <p className="font-bold text-sm text-slate-800">{name}</p>
-                                <span className="text-xs font-bold text-blue-600">{cd > 0 ? `${cd}天` : formatMoney(cost)}</span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">{desc}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <h3 className="font-black text-slate-900 mb-3">正在生效</h3>
-                        {(competitors.playerCountermeasures || []).length === 0 ? (
-                          <p className="text-sm text-slate-400">暂无反制措施。</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {competitors.playerCountermeasures.map((item, idx) => (
-                              <div key={`${item.type}_${idx}`} className="rounded-lg bg-slate-50 border border-slate-100 p-2 text-xs flex justify-between">
-                                <span className="font-bold">{item.name}</span>
-                                <span className="text-slate-500">剩{item.remainingDays}天</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h3 className="font-black text-slate-900 mb-3">情报时间线</h3>
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                      {(competitors.intelHistory || []).slice(0, 10).map((item, idx) => (
-                        <div key={`${item.month}_${item.day}_${idx}`} className="rounded-lg bg-slate-50 border border-slate-100 p-3 text-sm">
-                          <p className="font-bold text-slate-800">M{item.month} D{item.day} · {item.source} · {item.reliability}</p>
-                          <p className="text-slate-600 mt-1">{item.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'rebate' && (
-                <div className="animate-fade-in">
-                  <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
-                    <div>
-	                      <h2 className="text-2xl font-bold flex items-center gap-2"><Icons.Sparkles /> <Term term="返利系数">返利</Term>考核与经营诊断</h2>
-                      <p className="text-slate-500 text-sm mt-1">实时监控厂家任务进度，获取 AI 经营专家的毒舌建议。</p>
-                    </div>
-                  </div>
-
-                  {/* AI 顾问 */}
-                  <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-5 mb-6 shadow-md border border-slate-700 flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-lg"><Icons.Sparkles /></div>
-                    <div className="flex-1 text-slate-300">
-                      <h3 className="text-white font-bold text-lg mb-1">✨ AI 店总经营顾问</h3>
-                      <p className="text-sm italic mb-2">"{aiAdvice}"</p>
-                    </div>
-                    <button onClick={handleAskAIConsultant} disabled={isGeneratingAdvice} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 shrink-0">
-                      {isGeneratingAdvice ? '分析中...' : '免费咨询建议'}
-                    </button>
-                  </div>
-
                   {/* 厂家商务政策 */}
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 mb-6 shadow-sm">
-	                    <h3 className="font-bold text-lg text-emerald-900 mb-3 flex items-center gap-2">📋 厂家商务政策 (M{manufacturerPolicy.policyMonth}月生效)</h3>
+                    <h3 className="font-bold text-lg text-emerald-900 mb-3 flex items-center gap-2">📋 厂家商务政策 (M{manufacturerPolicy.policyMonth}月生效)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="bg-white p-3 rounded-lg border border-emerald-100 text-center">
-	                        <p className="text-[10px] text-slate-400 mb-1"><Term term="返利系数">返利系数</Term></p>
+                        <p className="text-[10px] text-slate-400 mb-1">返利系数</p>
                         <p className={'text-2xl font-black  ' + (manufacturerPolicy.rebateMultiplier >= 1 ? 'text-green-600' : 'text-red-600')}>×{manufacturerPolicy.rebateMultiplier.toFixed(2)}</p>
                         <p className="text-[10px] text-slate-400">{manufacturerPolicy.rebateMultiplier >= 1 ? '返利加成' : '返利缩减'}</p>
                       </div>
@@ -7186,8 +5124,8 @@ export default function App() {
                     {/* 政策影响说明 */}
                     <div className="bg-white/60 p-3 rounded-lg border border-emerald-100">
                       <p className="text-xs text-slate-600 leading-relaxed">
-	                        <b>政策关联规则：</b>达成率越高，<Term term="返利系数">返利系数</Term>越大（厂家奖励优秀经销商）；未达标时厂家可能加大返利促销救市，但指导价承压下调。
-	                        随机政策事件（新车上市/原材料涨价等）会叠加影响。<Term term="二网批售">二网批售</Term>价 = 动态指导价 × 90%。
+                        💡 <b>政策关联规则：</b>达成率越高，返利系数越大（厂家奖励优秀经销商）；未达标时厂家可能加大返利促销救市，但指导价承压下调。
+                        随机政策事件（新车上市/原材料涨价等）会叠加影响。二网批售价 = 动态指导价 × 90%。
                       </p>
                     </div>
                     {/* 历史政策 */}
@@ -7268,11 +5206,9 @@ export default function App() {
                 </div>
               )}
             </div>
-            )}
           </div>
 
-          {/* 首页：收件箱 + 日志 */}
-          {activeTab === 'dashboard' && (
+          {/* 右侧：收件箱 + 日志 */}
           <div className="w-full lg:w-80 bg-slate-800 text-slate-300 rounded-xl shadow-lg flex flex-col overflow-hidden h-80 lg:h-[700px] shrink-0">
             <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
               <div>
@@ -7284,47 +5220,31 @@ export default function App() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm font-mono" style={{ scrollbarWidth: 'thin', scrollbarColor: '#475569 transparent' }}>
-              {visibleMessageFeed.map((item, idx) => {
-                const showDayDivider = idx === 0 || visibleMessageFeed[idx - 1].day !== item.day;
-                const isExpanded = expandedMessageIds.has(item.id);
-                return (
-                  <React.Fragment key={item.id}>
-                    {showDayDivider && (
-                      <button onClick={() => openInboxForDay(item.day)} className="w-full flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-slate-300 transition-colors">
-                        <span className="h-px flex-1 bg-slate-700"></span>
-                        <span>D{item.day}</span>
-                        <span className="h-px flex-1 bg-slate-700"></span>
-                      </button>
-                    )}
-                    <div
-                      className="pb-2 border-b border-slate-700/50 last:border-0 cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1 transition-colors"
-                      onClick={() => item.kind === 'log' ? toggleExpandedMessage(item.id) : openInboxForDay(item.day)}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold uppercase tracking-wider" style={{
-                          color: item.kind === 'inbox' ? '#93c5fd' : item.tone === 'success' ? '#4ade80' : item.tone === 'warning' ? '#fbbf24' : item.tone === 'expense' ? '#f87171' : '#60a5fa'
-                        }}>{item.label}</span>
-                        {item.kind === 'log' && <span className="text-[10px] text-slate-500">{isExpanded ? '收起' : '展开'}</span>}
-                      </div>
-                      <p className="pl-1 font-bold text-slate-100 leading-relaxed">{item.title}</p>
-                      <p className={(isExpanded ? '' : 'max-h-8 overflow-hidden') + ' pl-1 leading-relaxed text-slate-300 text-xs mt-1'}>
-                        {item.body}
-                      </p>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-              {messageFeed.length > visibleMessageFeed.length && <p className="text-center text-[10px] text-slate-500">仅显示最近 {visibleMessageFeed.length} 条</p>}
+              {messageFeed.map(item => (
+                <div
+                  key={item.id}
+                  className="pb-2 border-b border-slate-700/50 last:border-0 cursor-pointer hover:bg-slate-700/30 rounded-lg p-1 -m-1 transition-colors"
+                  onClick={() => item.kind === 'log' ? setSelectedLogDay(item.day) : setShowInboxModal(true)}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">D-{item.day}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{
+                      color: item.kind === 'inbox' ? '#93c5fd' : item.tone === 'success' ? '#4ade80' : item.tone === 'warning' ? '#fbbf24' : item.tone === 'expense' ? '#f87171' : '#60a5fa'
+                    }}>{item.label}</span>
+                  </div>
+                  <p className="pl-1 font-bold text-slate-100 leading-relaxed">{item.title}</p>
+                  <p className="pl-1 opacity-80 leading-relaxed text-slate-300 text-xs mt-1">{item.body}</p>
+                </div>
+              ))}
             </div>
           </div>
-          )}
 
         </div>
       </div>
 
       {/* --- 自定义弹窗组件 --- */}
       {modalConfig.isOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-3 text-slate-800">{modalConfig.title}</h3>
             <p className="text-slate-600 mb-8 whitespace-pre-line leading-relaxed">{modalConfig.message}</p>
@@ -7342,94 +5262,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 结局系统 */}
-      {currentEnding && endingMeta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-100">
-            <div className={`${endingMeta.tone} text-white p-6`}>
-              <p className="text-xs font-black uppercase tracking-widest opacity-80">Game Ending</p>
-              <h2 className="text-3xl font-black mt-2">{endingMeta.title}</h2>
-              <p className="text-sm opacity-90 mt-2">{endingMeta.desc}</p>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[10px] text-slate-400">剧本</p>
-                  <p className="font-black text-slate-900">{currentEnding.scenarioName}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[10px] text-slate-400">难度</p>
-                  <p className="font-black text-slate-900">{currentEnding.difficultyName}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[10px] text-slate-400">经营天数</p>
-                  <p className="font-black text-slate-900">{currentEnding.day}天</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[10px] text-slate-400">A/S月评</p>
-                  <p className="font-black text-slate-900">{currentEnding.excellentMonths || 0}次</p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                  <div><p className="text-slate-400 text-xs font-bold">总资产</p><p className="font-black text-slate-900">{formatMoney(currentEnding.totalAssets || balanceAssets)}</p></div>
-                  <div><p className="text-slate-400 text-xs font-bold">总负债</p><p className="font-black text-red-600">{formatMoney(currentEnding.liabilities || currentEnding.loan || finance.loan)}</p></div>
-                  <div><p className="text-slate-400 text-xs font-bold">净资产</p><p className={(currentEnding.netAssets || 0) >= 0 ? 'font-black text-emerald-600' : 'font-black text-red-600'}>{formatMoney(currentEnding.netAssets || ownerEquity)}</p></div>
-                </div>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button onClick={() => { setActiveTab('reports'); setFinanceReportView('trend'); setEndingModalDismissed(true); }} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">查看战报</button>
-                <button onClick={handleRestart} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800">重新开局</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 月度摘要卡片 */}
-      {monthlySummaryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setMonthlySummaryModal(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-black text-blue-600">M{monthlySummaryModal.month} 月结完成</p>
-                <h3 className="text-xl font-black text-slate-900 mt-1">月度经营摘要</h3>
-                <p className="text-sm text-slate-500 mt-1">{monthlySummaryModal.headline}</p>
-              </div>
-              <button onClick={() => setMonthlySummaryModal(null)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-              <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                <p className="text-[10px] text-slate-400">经营评分</p>
-                <p className="text-xl font-black text-slate-900">{monthlySummaryModal.score}</p>
-              </div>
-              <div className="rounded-xl bg-violet-50 border border-violet-100 p-3">
-                <p className="text-[10px] text-violet-500">投资人评分</p>
-                <p className="text-xl font-black text-violet-700">{monthlySummaryModal.investorScore}</p>
-              </div>
-              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
-                <p className="text-[10px] text-emerald-600">返利到账</p>
-                <p className="text-lg font-black text-emerald-700">{formatMoney(monthlySummaryModal.payout)}</p>
-              </div>
-              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                <p className="text-[10px] text-blue-600">库存融资授信</p>
-                <p className="text-lg font-black text-blue-700">{formatMoney(monthlySummaryModal.creditLimit)}</p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-5">
-              <p className="text-xs font-black text-slate-700 mb-1">下月政策</p>
-              <p className="text-sm text-slate-600 leading-relaxed">{monthlySummaryModal.policy}</p>
-	                <p className="text-xs text-slate-500 mt-2"><Term term="承兑汇票专项授信">汇票授信</Term>：{formatMoney(monthlySummaryModal.draftCreditLimit)}</p>
-            </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button onClick={() => { setActiveTab('reports'); setFinanceReportView('profit'); setMonthlySummaryModal(null); }} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">查看报表</button>
-              <button onClick={() => { setActiveTab('rebate'); setMonthlySummaryModal(null); }} className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">返利详情</button>
-              <button onClick={() => { openInboxForDay(monthlySummaryModal.day); setMonthlySummaryModal(null); }} className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">当日收件</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* --- 订车专属配置弹窗 --- */}
       {orderForm.isOpen && orderForm.model && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
@@ -7438,19 +5270,6 @@ export default function App() {
               const _totalSlots = facility.showroomSpots + facility.warehouseCapacity;
               const _currentTotal = inventory.length + pendingOrders.reduce((sum, o) => sum + o.quantity, 0);
               const _available = Math.max(1, _totalSlots - _currentTotal);
-              const _paymentMethod = orderForm.paymentMethod || (orderForm.useLoan ? 'draft3' : 'cash');
-              const _totalCost = orderForm.model.baseCost * orderForm.quantity;
-              const _draft3Fee = Math.round(_totalCost * getDraftFeeRate(3));
-              const _draft6Fee = Math.round(_totalCost * getDraftFeeRate(6));
-              const _draftDeposit = Math.round(_totalCost * 0.2);
-              const _draft3Cash = _draftDeposit + _draft3Fee;
-              const _draft6Cash = _draftDeposit + _draft6Fee;
-              const _draftCreditEnough = (drafts.creditUsed || 0) + _totalCost <= (drafts.creditLimit || 0);
-              const _draftAllowed = (drafts.bankReputation || 70) >= 30 && _draftCreditEnough;
-              const _loanCreditEnough = (finance.loan || 0) + _totalCost <= (finance.creditLimit || 0);
-              const _loanAvailable = Math.max(0, (finance.creditLimit || 0) - (finance.loan || 0));
-              const _draftAvailable = getAvailableDraftCredit();
-              const _cashNeed = _paymentMethod === 'cash' ? _totalCost : _paymentMethod === 'loan' ? 0 : (_paymentMethod === 'draft6' ? _draft6Cash : _draft3Cash);
               return (<>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-slate-800">配置采购单</h3>
@@ -7463,7 +5282,7 @@ export default function App() {
                   <input type="range" min="1" max={_available} value={Math.min(orderForm.quantity, _available)} onChange={e => setOrderForm(prev => ({...prev, quantity: parseInt(e.target.value, 10)}))} className="flex-1 accent-slate-800" />
                   <input type="number" min="1" max={_available} value={orderForm.quantity} onChange={e => setOrderForm(prev => ({...prev, quantity: Math.max(1, parseInt(e.target.value, 10) || 1)}))} className="w-16 border border-slate-300 rounded-md p-1.5 text-center font-bold outline-none focus:border-blue-500" />
                 </div>
-	                <p className="text-xs text-slate-500 mt-1">剩余空位(含<Term term="在途">在途</Term>): <span className="font-bold">{_totalSlots - _currentTotal}</span> 台 (<Term term="展厅展位">展厅</Term> {facility.showroomSpots - inventory.filter(c => c.location === 'showroom').length} + <Term term="仓储区">仓储</Term> {facility.warehouseCapacity - inventory.filter(c => c.location === 'warehouse').length} - <Term term="在途">在途</Term> {pendingOrders.reduce((s,o) => s + o.quantity, 0)})</p>
+                <p className="text-xs text-slate-500 mt-1">剩余空位(含在途): <span className="font-bold">{_totalSlots - _currentTotal}</span> 台 (展厅 {facility.showroomSpots - inventory.filter(c => c.location === 'showroom').length} + 仓储 {facility.warehouseCapacity - inventory.filter(c => c.location === 'warehouse').length} - 在途 {pendingOrders.reduce((s,o) => s + o.quantity, 0)})</p>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">车辆外观颜色</label>
@@ -7476,25 +5295,11 @@ export default function App() {
                 </div>
               </div>
               <div>
-	                <label className="block text-sm font-bold text-slate-700 mb-2">付款方式 (两套银行<Term term="授信">额度</Term>独立)</label>
-                <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                  <div className="rounded-lg bg-blue-50 border border-blue-100 p-2">
-	                    <p className="font-bold text-blue-700"><Term term="库存融资授信">库存融资可用</Term></p>
-                    <p className="text-slate-600 mt-0.5">{formatMoney(_loanAvailable)} / {formatMoney(finance.creditLimit || 0)}</p>
-                  </div>
-                  <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-2">
-	                    <p className="font-bold text-indigo-700"><Term term="承兑汇票专项授信">承兑汇票专项可用</Term></p>
-                    <p className="text-slate-600 mt-0.5">{formatMoney(_draftAvailable)} / {formatMoney(drafts.creditLimit || 0)}</p>
-                  </div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">付款方式 (提车款)</label>
+                <div className="flex gap-2">
+                  <button onClick={() => setOrderForm(prev => ({...prev, useLoan: false}))} className={'flex-1 py-2.5 rounded-md border text-sm font-bold transition-all  ' + (!orderForm.useLoan ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}>现金全款</button>
+                  <button onClick={() => setOrderForm(prev => ({...prev, useLoan: true}))} className={'flex-1 py-2.5 rounded-md border text-sm font-bold transition-all  ' + (orderForm.useLoan ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}>银行融资</button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  <button onClick={() => setOrderForm(prev => ({...prev, paymentMethod: 'cash'}))} className={'py-2.5 rounded-md border text-sm font-bold transition-all  ' + (_paymentMethod === 'cash' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}>现金全款</button>
-	                  <button disabled={!_loanCreditEnough} onClick={() => setOrderForm(prev => ({...prev, paymentMethod: 'loan'}))} className={'py-2.5 rounded-md border text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed  ' + (_paymentMethod === 'loan' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}><Term term="库存融资">库存融资</Term></button>
-	                  <button disabled={!_draftAllowed} onClick={() => setOrderForm(prev => ({...prev, paymentMethod: 'draft3'}))} className={'py-2.5 rounded-md border text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed  ' + (_paymentMethod === 'draft3' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}><Term term="承兑汇票">3个月汇票</Term></button>
-	                  <button disabled={!_draftAllowed} onClick={() => setOrderForm(prev => ({...prev, paymentMethod: 'draft6'}))} className={'py-2.5 rounded-md border text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed  ' + (_paymentMethod === 'draft6' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50')}><Term term="承兑汇票">6个月汇票</Term></button>
-                </div>
-                {!_loanCreditEnough && <p className="text-xs text-red-500 mt-2">库存融资授信不足，当前库存融资可用 {formatMoney(_loanAvailable)}。</p>}
-                {!_draftAllowed && <p className="text-xs text-red-500 mt-2">{(drafts.bankReputation || 70) < 30 ? '银行信用低于30，暂停新开汇票。' : `承兑汇票专项授信不足，可用 ${formatMoney(_draftAvailable)}。可改选“库存融资”使用顶部那笔库存融资额度。`}</p>}
               </div>
               <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 text-sm text-amber-800">
                 <p className="font-bold">🚛 物流周期: 3~7天到货</p>
@@ -7502,25 +5307,16 @@ export default function App() {
               </div>
               <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <p className="flex justify-between text-slate-600 text-sm mb-1"><span>单车成本:</span> <span>¥{orderForm.model.baseCost.toLocaleString()}</span></p>
-                <p className="flex justify-between text-slate-600 text-sm mb-1"><span>采购总额:</span> <span className="font-bold">¥{_totalCost.toLocaleString()}</span></p>
-                {(_paymentMethod === 'draft3' || _paymentMethod === 'draft6') && (
-                  <>
-	                    <p className="flex justify-between text-slate-600 text-sm mb-1"><span><Term term="承兑汇票">汇票</Term>保证金(20%):</span> <span>¥{_draftDeposit.toLocaleString()}</span></p>
-                    <p className="flex justify-between text-slate-600 text-sm mb-1"><span>银行手续费:</span> <span>¥{(_paymentMethod === 'draft6' ? _draft6Fee : _draft3Fee).toLocaleString()}</span></p>
-	                    <p className="flex justify-between text-slate-600 text-sm mb-1"><span>到期尾款(80%):</span> <span>¥{Math.round(_totalCost * 0.8).toLocaleString()}</span></p>
-                  </>
+                <p className="flex justify-between text-lg font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2"><span>总计采购支出:</span> <span className="text-blue-700">¥{(orderForm.model.baseCost * orderForm.quantity).toLocaleString()}</span></p>
+                {orderForm.useLoan && (
+                  <p className="text-right text-xs font-medium text-orange-500 mt-1">
+                    使用融资预计产生利息: ¥{Math.round(orderForm.model.baseCost * orderForm.quantity * finance.interestRate)} / 天
+                  </p>
                 )}
-                {_paymentMethod === 'loan' && (
-                  <>
-	                    <p className="flex justify-between text-slate-600 text-sm mb-1"><span>本次新增<Term term="库存融资">银行负债</Term>:</span> <span>¥{_totalCost.toLocaleString()}</span></p>
-                    <p className="flex justify-between text-slate-600 text-sm mb-1"><span>融资后负债余额:</span> <span>¥{((finance.loan || 0) + _totalCost).toLocaleString()}</span></p>
-                  </>
-                )}
-                <p className="flex justify-between text-lg font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2"><span>本次现金支出:</span> <span className="text-blue-700">¥{_cashNeed.toLocaleString()}</span></p>
               </div>
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setOrderForm({ isOpen: false, model: null, quantity: 1, color: '黑', paymentMethod: 'draft3' })} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors">取消配置</button>
+              <button onClick={() => setOrderForm({ isOpen: false, model: null, quantity: 1, color: '黑', useLoan: false })} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors">取消配置</button>
               <button onClick={executeOrder} className="px-5 py-2.5 bg-slate-800 text-white font-medium rounded-lg hover:bg-slate-900 transition-colors shadow-md">确认下单</button>
             </div>
             </>);
@@ -7559,7 +5355,7 @@ export default function App() {
                           log.type === 'expense' ? 'bg-red-50 border-red-200 text-red-800' :
                           'bg-blue-50 border-blue-200 text-blue-800'
                         }`}>
-                          <span className="font-bold mr-2">[{log.type === 'success' ? '完成' : log.type === 'warning' ? '预警' : log.type === 'expense' ? '财务' : '事件'}]</span>
+                          <span className="font-bold mr-2">[{log.type === 'success' ? '喜报' : log.type === 'warning' ? '警示' : log.type === 'expense' ? '财务' : '通知'}]</span>
                           {log.message}
                         </div>
                       )) : <p className="text-sm text-slate-400">暂无经营事件记录</p>}
@@ -7643,7 +5439,7 @@ export default function App() {
               <div className="space-y-2">
                 {todoQueue.length === 0 && <p className="text-sm text-slate-400 bg-slate-50 rounded-lg p-4 text-center">暂无紧急待办，保持经营节奏。</p>}
                 {todoQueue.map(item => (
-                  <button key={`brief-${item.title}-${item.tab}`} onClick={() => { openTaskTarget(item); setShowBriefingModal(false); }} className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+                  <button key={`brief-${item.title}-${item.tab}`} onClick={() => { setActiveTab(item.tab); setShowBriefingModal(false); }} className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-bold text-sm text-slate-800">{item.title}</p>
                       <span className={'text-[10px] px-2 py-1 rounded-full font-bold shrink-0 ' + (item.level === 'high' ? 'bg-red-100 text-red-600' : item.level === 'mid' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600')}>
@@ -7659,7 +5455,7 @@ export default function App() {
             <div className="bg-slate-900 text-white rounded-xl p-4">
               <h4 className="font-bold mb-2">晨会口径</h4>
               <p className="text-sm text-slate-300 leading-relaxed">
-	                先保现金流，再保库存结构；前端新车可以薄利，但要用金融、<Term term="精品">精品</Term>、售后和<Term term="续保">续保</Term>把<Term term="GP3">GP3</Term>做起来。月底前重点盯销量达成、<Term term="邀约到店率">邀约到店率</Term>、<Term term="销售转化率">销售转化率</Term>和<Term term="CSI">CSI</Term>。
+                先保现金流，再保库存结构；前端新车可以薄利，但要用金融、精品、售后和续保把GP3做起来。月底前重点盯销量达成、邀约到店率、销售转化率和CSI。
               </p>
             </div>
           </div>
@@ -7673,105 +5469,24 @@ export default function App() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <h3 className="text-2xl font-black text-slate-800">经理收件箱</h3>
-                <p className="text-sm text-slate-500">{selectedInboxDay !== null ? `D${selectedInboxDay} 当日收件` : '厂家、银行、市场情报与系统提醒'}</p>
+                <p className="text-sm text-slate-500">厂家、银行、市场情报与系统提醒</p>
               </div>
               <button onClick={() => setShowInboxModal(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
-            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              {selectedInboxDay !== null ? (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button onClick={() => setSelectedInboxDay(Math.max(1, selectedInboxDay - 1))} disabled={selectedInboxDay <= 1} className="px-3 py-2 text-xs font-black rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40">◀ 前一天</button>
-                  <span className="text-sm font-black text-slate-700">D{selectedInboxDay}</span>
-                  <button onClick={() => setSelectedInboxDay(Math.min(day, selectedInboxDay + 1))} disabled={selectedInboxDay >= day} className="px-3 py-2 text-xs font-black rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40">后一天 ▶</button>
-                  <button onClick={() => setSelectedInboxDay(null)} className="px-3 py-2 text-xs font-black rounded-lg bg-slate-900 text-white hover:bg-slate-800">查看全部</button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(inboxTypeLabel).map(([type, label]) => (
-                      <button key={type} onClick={() => setInboxFilter(prev => ({ ...prev, type }))} className={'px-3 py-1.5 rounded-lg text-xs font-black border transition-colors ' + (inboxFilter.type === type ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100')}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select value={inboxFilter.dayRange} onChange={e => setInboxFilter(prev => ({ ...prev, dayRange: e.target.value }))} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700">
-                      <option value="all">全部日期</option>
-                      <option value="today">今天</option>
-                      <option value="7">最近7天</option>
-                      <option value="30">最近30天</option>
-                    </select>
-                    <input
-                      value={inboxFilter.specificDay}
-                      onChange={e => setInboxFilter(prev => ({ ...prev, specificDay: e.target.value }))}
-                      placeholder="输入D天数"
-                      className="w-28 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700"
-                    />
-                    <span className="ml-auto text-xs font-bold text-slate-500">显示 {filteredInboxMessages.length} 封（共 {managerInbox.length} 封）</span>
-                  </div>
-                </div>
-              )}
-            </div>
             <div className="space-y-3">
-              {filteredInboxMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-8">当前筛选下没有收件。</p>}
-              {filteredInboxMessages.map(msg => {
-                const isRead = readInboxIds.has(msg.id);
-                const expanded = expandedInboxIds.has(msg.id);
-                const msgType = getInboxType(msg);
-                return (
-                  <div key={msg.id} className="border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
-                    <button
-                      onClick={() => {
-                        toggleExpandedInbox(msg.id);
-                        if (!isRead) toggleInboxRead(msg.id);
-                      }}
-                      className="w-full text-left p-4 hover:bg-white transition-colors"
-                    >
-                      <div className="flex justify-between items-start gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <span className={(isRead ? 'bg-slate-300' : 'bg-blue-500') + ' mt-1.5 h-2.5 w-2.5 rounded-full shrink-0'}></span>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-blue-600">{msg.from} · {inboxTypeLabel[msgType]}</p>
-                            <h4 className="font-bold text-slate-800 truncate">{msg.title}</h4>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-slate-400">D{msg.day}</span>
-                          <span className="text-xs font-black text-slate-400">{expanded ? '收起' : '展开'}</span>
-                        </div>
-                      </div>
-                    </button>
-                    {expanded && (
-                      <div className="px-4 pb-4 pl-9">
-                        <p className="text-sm text-slate-600 leading-relaxed">{msg.body}</p>
-                        <button onClick={() => toggleInboxRead(msg.id)} className="mt-3 text-xs font-black text-blue-600 hover:text-blue-700">
-                          标记为{isRead ? '未读' : '已读'}
-                        </button>
-                      </div>
-                    )}
-                    {!expanded && (
-                      <div className="px-4 pb-4 pl-9">
-                        <p className="text-xs text-slate-500 leading-relaxed max-h-8 overflow-hidden">{msg.body}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {selectedInboxDay !== null && (
-              <div className="mt-5 border-t border-slate-200 pt-4">
-                <h4 className="font-black text-slate-800 mb-3">当日经营日志</h4>
-                <div className="space-y-2">
-                  {logs.filter(log => log.day === selectedInboxDay).length === 0 && <p className="text-sm text-slate-400">当天暂无系统日志。</p>}
-                  {logs.filter(log => log.day === selectedInboxDay).map((log, idx) => (
-                    <div key={`${log.day}_${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                      <span className="font-black text-slate-700 mr-2">{log.type === 'success' ? '完成' : log.type === 'warning' ? '预警' : log.type === 'expense' ? '财务' : '事件'}</span>
-                      <span className="text-slate-600">{log.message}</span>
+              {[...managerInbox].reverse().map(msg => (
+                <div key={msg.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                  <div className="flex justify-between items-start gap-3 mb-2">
+                    <div>
+                      <p className="text-xs font-bold text-blue-600">{msg.from}</p>
+                      <h4 className="font-bold text-slate-800">{msg.title}</h4>
                     </div>
-                  ))}
+                    <span className="text-xs text-slate-400 shrink-0">D{msg.day}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">{msg.body}</p>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -7785,7 +5500,7 @@ export default function App() {
               {/* 自动存档槽 */}
               {(() => {
                 const allSlots = getSaveSlots();
-                const autoSlot = isSaveLike(allSlots.slots['auto']) ? allSlots.slots['auto'] : null;
+                const autoSlot = allSlots.slots['auto'];
                 return (
                   <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 opacity-60">
                     <div className="flex items-center justify-between">
@@ -7802,7 +5517,7 @@ export default function App() {
               {Array.from({ length: MAX_SLOTS }, (_, i) => {
                 const slotId = `slot${i + 1}`;
                 const allSlots = getSaveSlots();
-                const slot = isSaveLike(allSlots.slots[slotId]) ? allSlots.slots[slotId] : null;
+                const slot = allSlots.slots[slotId];
                 const isRenaming = renameSlot === slotId;
                 return (
                   <div key={slotId} className={'rounded-lg p-4 border-2 transition-colors ' + (slot ? 'bg-blue-50 border-blue-200' : 'bg-white border-dashed border-slate-300')}>
@@ -7823,7 +5538,7 @@ export default function App() {
                           </div>
                         ) : (
                           <>
-                            <p className="font-bold text-sm truncate">{slot ? getSaveSlotLabel(slotId, slot) : `空槽位 ${i + 1}`}</p>
+                            <p className="font-bold text-sm truncate">{slot ? slot.slotName || `存档 ${i + 1}` : `空槽位 ${i + 1}`}</p>
                             {slot && <p className="text-xs text-slate-400 truncate">{slot.savedAt} · M{Math.floor((slot.day - 1) / 30) + 1} D{((slot.day - 1) % 30) + 1}</p>}
                           </>
                         )}
@@ -7831,11 +5546,11 @@ export default function App() {
                       <div className="flex items-center gap-2 shrink-0">
                         {slot && !isRenaming && (
                           <>
-                            <button onClick={() => { setRenameSlot(slotId); setRenameValue(getSaveSlotLabel(slotId, slot)); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200" title="重命名">✏️</button>
+                            <button onClick={() => { setRenameSlot(slotId); setRenameValue(slot.slotName || `存档 ${i + 1}`); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200" title="重命名">✏️</button>
                             <button onClick={() => handleDeleteSlot(slotId)} className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200" title="删除">🗑️</button>
                           </>
                         )}
-                        <button onClick={() => handleSaveToSlot(slotId, slot ? getSaveSlotLabel(slotId, slot) : `存档 ${i + 1}`)} className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-bold">
+                        <button onClick={() => handleSaveToSlot(slotId, slot?.slotName || `存档 ${i + 1}`)} className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-bold">
                           {slot ? '覆盖保存' : '保存'}
                         </button>
                       </div>
@@ -7851,20 +5566,24 @@ export default function App() {
 
       {/* 读档弹窗 */}
       {showLoadModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeLoadModal}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowLoadModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-4">📂 选择存档读取</h2>
             <div className="space-y-3 max-h-[60vh] overflow-y-auto">
               {(() => {
-                const loadEntries = getLoadSlotEntries();
-                return loadEntries.map(({ slotId, slot, isAuto }) => {
+                const allSlots = getSaveSlots();
+                const allKeys = ['auto', ...Array.from({ length: MAX_SLOTS }, (_, i) => `slot${i + 1}`)];
+                const filledSlots = allKeys.filter(k => allSlots.slots[k]);
+                if (filledSlots.length === 0) return <p className="text-sm text-slate-400 text-center py-8">暂无存档</p>;
+                return filledSlots.map(slotId => {
+                  const slot = allSlots.slots[slotId];
+                  const isAuto = slotId === 'auto';
                   const isRenaming = renameSlot === slotId;
-                  const isManualSlot = /^slot\d+$/.test(slotId);
                   return (
-                    <div key={slotId} className={(slot ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75') + ' rounded-lg p-4 border'}>
+                    <div key={slotId} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          {isRenaming && slot ? (
+                          {isRenaming ? (
                             <div className="flex items-center gap-2">
                               <input
                                 type="text"
@@ -7880,24 +5599,20 @@ export default function App() {
                           ) : (
                             <>
                               <p className="font-bold text-sm truncate">
-                                {slot ? `${isAuto ? '🔄 ' : ''}${getSaveSlotLabel(slotId, slot, isAuto)}` : (isAuto ? '🔄 自动存档：空' : isManualSlot ? `空槽位 ${slotId.replace('slot', '')}` : `${slotId}：无效数据`)}
+                                {isAuto ? '🔄 ' : ''}{slot.slotName || (isAuto ? '自动存档' : `存档 ${slotId.replace('slot', '')}`)}
                               </p>
-                              {slot ? (
-                                <p className="text-xs text-slate-400 truncate">{slot.savedAt || '未知时间'} · M{Math.floor(((slot.day || 1) - 1) / 30) + 1} D{(((slot.day || 1) - 1) % 30) + 1}</p>
-                              ) : (
-                                <p className="text-xs text-slate-400 truncate">暂无可读取进度</p>
-                              )}
+                              <p className="text-xs text-slate-400 truncate">{slot.savedAt} · M{Math.floor((slot.day - 1) / 30) + 1} D{((slot.day - 1) % 30) + 1}</p>
                             </>
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {slot && !isAuto && !isRenaming && (
+                          {!isAuto && !isRenaming && (
                             <>
-                              <button onClick={() => { setRenameSlot(slotId); setRenameValue(getSaveSlotLabel(slotId, slot, isAuto)); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200" title="重命名">✏️</button>
+                              <button onClick={() => { setRenameSlot(slotId); setRenameValue(slot.slotName || `存档 ${slotId.replace('slot', '')}`); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200" title="重命名">✏️</button>
                               <button onClick={() => handleDeleteSlot(slotId)} className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200" title="删除">🗑️</button>
                             </>
                           )}
-                          <button disabled={!slot} onClick={() => handleLoadFromSlot(slotId)} className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                          <button onClick={() => handleLoadFromSlot(slotId)} className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 font-bold">
                             读取
                           </button>
                         </div>
@@ -7905,9 +5620,9 @@ export default function App() {
                     </div>
                   );
                 });
-              })()}
+              })}
             </div>
-            <button onClick={closeLoadModal} className="mt-4 w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors">关闭</button>
+            <button onClick={() => setShowLoadModal(false)} className="mt-4 w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors">关闭</button>
           </div>
         </div>
       )}

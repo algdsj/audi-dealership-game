@@ -1,16 +1,97 @@
-# React + Vite
+# 奥迪 4S 店经营模拟
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个基于 React + Vite 的奥迪 4S 店经营模拟游戏。玩家扮演受投资人、厂家、银行和本地市场共同约束的运营总经理，在现金流、库存、销量、CSI、人员稳定、返利和融资风险之间做取舍。
 
-Currently, two official plugins are available:
+## 游戏特色
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **剧本目标**：支持“自由模式”“6个月保住职位”“12个月净资产翻倍”“12个月区域明星店”等局内目标。
+- **难度模式**：支持新手、标准、硬核三档难度，影响开局现金、库存融资授信、厂家任务和 CSI 起点。
+- **新手引导**：引导玩家完成第一次订车、到货、布展、成交和月结。
+- **完整经营循环**：订车、到货、布展、投流、邀约、成交、返利、月结、投资人评价。
+- **销售与客户谈判**：客户会根据同城报价、服务能力、金融方案、销售能力和 CSI 决定是否成交。
+- **财务与报表**：包含利润表、现金流量表、资产负债表、趋势图、月报和年报中心。
+- **融资系统**：区分库存融资授信和承兑汇票专项授信，支持汇票到期兑付、逾期罚息和银行信用。
+- **利润中心**：总经理办公室、财务报表、返利、汇票、GM 个人垫资和投资人授权。
+- **本地市场**：同城竞品、价格战、本品店关系、市场份额、竞品活动和反制措施。
+- **衍生业务**：金融佣金、保险、精品、延保、续保、二手车、售后服务和 CSI 联动。
+- **组织人事**：DCC、销售、客服、主播、售后技师的招聘、培训、标签、忠诚度、压力和流失风险。
+- **结局系统**：破产、解聘、续约、优秀总经理、区域明星店等结果。
+- **存档系统**：支持自动存档、多个手动存档槽、读档、重命名和旧存档兼容。
 
-## React Compiler
+## 技术栈
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- Vite 8
+- Tailwind CSS 4
+- ESLint
 
-## Expanding the ESLint configuration
+## 本地运行
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev
+```
+
+打开终端输出的本地地址，通常是：
+
+```text
+http://127.0.0.1:5173/
+```
+
+## 常用命令
+
+```bash
+npm run dev      # 启动开发服务器
+npm run build    # 构建生产版本
+npm run lint     # 运行 ESLint 检查
+npm run preview  # 预览构建结果
+```
+
+## 项目结构
+
+```text
+.
+├── docs/                    # 需求、优化和开发计划文档
+├── public/                  # 静态资源
+├── src/
+│   ├── App.jsx              # 主要游戏逻辑和界面
+│   ├── index.css            # 样式入口
+│   └── main.jsx             # React 入口
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── vite.config.js
+└── README.md
+```
+
+## 存档说明
+
+游戏存档保存在浏览器 `localStorage` 中，包含自动存档和多个手动存档槽。清空浏览器站点数据会删除本地存档。
+
+读档弹窗会展示自动存档和 5 个手动槽位。空槽位不可读取，有存档的槽位可读取、重命名或删除。
+
+## GitHub 上传建议
+
+上传源码即可，不需要上传：
+
+- `node_modules/`
+- `dist/`
+- `.git/`
+- `.DS_Store`
+- `.env`
+
+这些规则已经写入 `.gitignore`。GitHub 拉取后执行 `npm install` 即可恢复依赖。
+
+## 当前状态
+
+已完成主要经营系统、产品化游戏循环、剧本目标、自由模式、难度模式、新手引导、结局系统、月报/年报界面、财务报表、消息中心、读档弹窗和关键 bug 修复。
+
+最近验证：
+
+```bash
+npm run lint
+npm run build
+```
+
+构建时如出现 Vite chunk size warning，属于当前单文件游戏体量较大的提示，不影响运行。
