@@ -1,0 +1,15 @@
+{
+  "baseUrl": "http://127.0.0.1:6188/",
+  "cdpUrl": "http://127.0.0.1:9223",
+  "screenshots": [
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/01-setup.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/02-dashboard.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/03-after-tab-sweep.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/04-order-created.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/05-load-modal.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/06-month-end.png",
+    "/Users/zhoutong/Desktop/奥迪4S店经营模拟_备份_20260507/docs/test-artifacts/full-test-2026-05-16/07-mobile-dashboard.png"
+  ],
+  "findings": [],
+  "events": []
+}

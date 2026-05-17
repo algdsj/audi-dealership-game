@@ -1,0 +1,76 @@
+export const calculateNextMonthTarget = (monthlyStats, difficulty) => (
+  Math.max(8, Math.round(Math.max(10, Math.floor((monthlyStats.sales || 0) * 1.1) + 2) * (difficulty?.targetMultiplier || 1)))
+);
+
+export const createNextMonthlyStats = ({
+  previousStats,
+  difficulty,
+  finalPayout,
+  achieveRate,
+  processPassed,
+  csiScore,
+  investorReview,
+}) => {
+  const nextMonthTarget = calculateNextMonthTarget(previousStats, difficulty);
+  return {
+    nextMonthTarget,
+    monthlyStats: {
+      target: nextMonthTarget,
+      sales: 0,
+      purchaseUnits: 0,
+      leads: 0,
+      walkIns: 0,
+      dccWalkIns: 0,
+      naturalWalkIns: 0,
+      baseRebatesPool: 0,
+      revenue: 0,
+      cogs: 0,
+      derivativeRevenue: 0,
+      derivativeCost: 0,
+      rent: 0,
+      depreciation: 0,
+      labor: 0,
+      financeCost: 0,
+      marketingCost: 0,
+      storageCost: 0,
+      realRevenue: 0,
+      realCogs: 0,
+      realRebate: 0,
+      virtualRevenue: 0,
+      virtualCogs: 0,
+      virtualRebate: 0,
+      draftBankFee: 0,
+      draftPenalty: 0,
+      floatingCost: 0,
+      manufacturerPenalty: 0,
+      lastMonthPayout: finalPayout,
+      lastMonthAchieve: achieveRate,
+      lastMonthRevenue: previousStats.revenue,
+      lastMonthProcessPassed: processPassed,
+      activitySpend: 0,
+      recoveredLeads: 0,
+      afterSalesRevenue: 0,
+      afterSalesCost: 0,
+      afterSalesReturnVisits: 0,
+      financeCommission: 0,
+      tradeInCount: 0,
+      tradeInSubsidy: 0,
+      insuranceRenewalRevenue: 0,
+      referralLeads: 0,
+      csiScore: Math.round(csiScore),
+      usedCarRevenue: 0,
+      usedCarCost: 0,
+      usedCarPrepCost: 0,
+      lastInvestorScore: investorReview.score,
+      lastInvestorGrade: investorReview.grade,
+      lastInvestorComment: investorReview.comment,
+    },
+  };
+};
+
+export const resetVirtualSalesMonth = (virtualSales, nextMonthTarget) => ({
+  ...virtualSales,
+  monthlyTarget: nextMonthTarget,
+  monthlyActual: 0,
+  monthlyVirtual: 0,
+});
