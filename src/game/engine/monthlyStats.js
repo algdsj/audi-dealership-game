@@ -33,6 +33,7 @@ export const createNextMonthlyStats = ({
       financeCost: 0,
       marketingCost: 0,
       storageCost: 0,
+      manufacturerSupportIncome: 0,
       realRevenue: 0,
       realCogs: 0,
       realRebate: 0,

@@ -8,6 +8,10 @@ export const STAFF_TRAITS = {
     { id: 'price_killer', label: '价格杀手', tone: 'negative', desc: '低价成交能力强，但更容易拉低毛利。', skillBonus: 8, priceSensitivity: 0.08, complaintMult: 1.08, turnoverRisk: 0.08 },
     { id: 'relationship', label: '客户关系型', tone: 'positive', desc: '口碑与客诉控制更稳。', skillBonus: 4, complaintMult: 0.78, loyaltyDelta: 1 },
     { id: 'finance', label: '金融高手', tone: 'positive', desc: '金融按揭佣金更高。', financeBonus: 0.22, salesBonus: 0.03 },
+    { id: 'business_specialist', label: '商务高手', tone: 'positive', desc: '更擅长A6L商务客户预算、形象和交付确定性沟通。', seriesSalesBonus: { A6L: 0.06 }, skillBonus: 3 },
+    { id: 'family_tradein', label: '置换顾问', tone: 'positive', desc: '更擅长Q5L家庭换购和旧车置换方案。', seriesSalesBonus: { Q5L: 0.055 }, skillBonus: 2 },
+    { id: 'ev_product', label: '新能源产品专家', tone: 'positive', desc: '更擅长Q6L e-tron智能座舱、补能和竞品对比。', seriesSalesBonus: { 'Q6L e-tron': 0.065 }, skillBonus: 2 },
+    { id: 'sporty_young', label: '年轻个性顾问', tone: 'positive', desc: '更擅长A3L预算首购和A5L运动形象客户。', seriesSalesBonus: { A3L: 0.045, A5L: 0.055 }, skillBonus: 2 },
     { id: 'rookie', label: '新人王', tone: 'negative', desc: '成长快但稳定性差。', trainBonus: 4, turnoverMult: 1.12, skillGrowth: 2, turnoverRisk: 0.12 },
   ],
   tech: [

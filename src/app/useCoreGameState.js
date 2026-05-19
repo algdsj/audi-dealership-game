@@ -11,7 +11,7 @@ export function useCoreGameState() {
   const [investorProfileId, setInvestorProfileId] = useState('roi_first');
   const [difficultyMode, setDifficultyMode] = useState('standard');
   const [scenarioId, setScenarioId] = useState('survive6');
-  const [tutorial, setTutorial] = useState({ enabled: true, dismissed: false });
+  const [tutorial, setTutorial] = useState({ enabled: true, dismissed: false, visitedTabs: [] });
   const [endingSummary, setEndingSummary] = useState(null);
   const [endingModalDismissed, setEndingModalDismissed] = useState(false);
   const [day, setDay] = useState(1);

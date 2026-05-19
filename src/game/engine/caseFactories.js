@@ -113,8 +113,10 @@ export const createCustomerDealCase = ({
     financeIntent,
     tradeInIntent,
     urgency,
+    carModels,
     random,
   });
+  const adjustedBaseClose = Math.max(0.04, Math.min(0.9, baseClose + (profile.seriesFit || 0)));
   return {
     id: `customer_${sourceDay}_${now()}_${random().toString(36).slice(2, 7)}`,
     day: sourceDay,
@@ -128,6 +130,9 @@ export const createCustomerDealCase = ({
     channelName: channel.name,
     channelIcon: channel.icon,
     segment: modelDef.segment,
+    preferredSeries: profile.preferredSeries || [],
+    avoidedSeries: profile.avoidedSeries || [],
+    sensitivity: profile.sensitivity || null,
     modelId: modelDef.id,
     modelName: modelDef.name,
     carId: car.id,
@@ -141,7 +146,7 @@ export const createCustomerDealCase = ({
     tradeInIntent,
     urgency,
     profile,
-    baseClose,
+    baseClose: adjustedBaseClose,
     estimatedGrossProfit: estimatedAddons.grossProfit,
   };
 };

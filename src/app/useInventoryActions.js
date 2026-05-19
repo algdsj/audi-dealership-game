@@ -1,5 +1,6 @@
 import {
   autoArrangeShowroom,
+  applySeriesPriceStrategy,
   commitModelInventoryPrice,
   moveInventoryCar,
   prepareInventorySubsidy,
@@ -101,14 +102,23 @@ export function useInventoryActions({
   };
 
   const handleAutoShowroom = () => {
-    const result = autoArrangeShowroom({ inventory, facility });
+    const result = autoArrangeShowroom({ inventory, facility, carModels });
     if (result.alert) return showAlert(result.alert.title, result.alert.message);
     setInventory(result.inventory);
     addLog(result.log.type, result.log.message);
   };
 
+  const handleApplySeriesPriceStrategy = (series) => {
+    const result = applySeriesPriceStrategy({ series, inventory, carModels, marketPrices, getDynamicMsrp });
+    if (result.status === 'invalid') return;
+    setInventory(result.inventory);
+    setModelPriceOverrides(prev => ({ ...prev, ...result.modelPriceOverrides }));
+    addLog(result.log.type, result.log.message);
+  };
+
   return {
     handleApplySubsidy,
+    handleApplySeriesPriceStrategy,
     handleAutoShowroom,
     handleMoveCar,
     handlePriceBlur,

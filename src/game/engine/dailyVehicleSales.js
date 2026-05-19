@@ -1,3 +1,8 @@
+import {
+  buildShowroomStrategySnapshot,
+  getSeriesCompetitorImpact,
+} from './vehicleStructure.js';
+
 const USED_CAR_BRANDS = ['大众帕萨特', '本田雅阁', '丰田凯美瑞', '别克君威', '日产天籁', '福特蒙迪欧'];
 
 export const settleDailyVehicleSales = ({
@@ -13,10 +18,12 @@ export const settleDailyVehicleSales = ({
   marketPrices,
   marketEnvironment,
   activeRegion,
+  competitors = {},
   facility,
   salesAvgSkill,
   salesFinanceBonus = 0,
   salesPriceKillerBonus = 0,
+  salesSeriesBonusBySeries = {},
   strategy,
   csi,
   gmMoraleScore,
@@ -57,6 +64,7 @@ export const settleDailyVehicleSales = ({
   const soldCarsSummary = {};
   const newSoldVehicles = [];
   const testDriveModelIds = new Set((testDriveCars || []).map(item => item.modelId));
+  const showroomStrategy = buildShowroomStrategySnapshot({ inventory, carModels });
 
   for (const segment of handledCustomers) {
     if (nextInventory.length === 0 && (nextVirtualSales.virtualCars || []).length === 0) break;
@@ -79,16 +87,18 @@ export const settleDailyVehicleSales = ({
     const skillConv = (salesAvgSkill / 100) * 0.20;
     const priceReality = getPriceReality(car.price, currentMarketPrice);
     const csiConv = csi.score >= 95 ? 0.08 : csi.score >= 90 ? 0.04 : csi.score >= 85 ? -0.03 : -0.08;
-    const competitorDemandConv = marketEnvironment.competitorEvent.affectedSegments.includes(modelDef.segment)
-      ? marketEnvironment.competitorEvent.demandImpact
-      : 0;
+    const competitorImpact = getSeriesCompetitorImpact({ modelDef, marketEnvironment, competitors });
+    const competitorDemandConv = competitorImpact.demandImpact + Math.min(showroomStrategy.competitorShield, Math.max(0, -competitorImpact.demandImpact));
     const regionDemandConv = activeRegion.segmentPressure?.includes(modelDef.segment) ? (activeRegion.segmentDemandImpact || 0) : 0;
     const moraleConv = gmMoraleScore >= 90 ? 0.05 : gmMoraleScore >= 70 ? 0 : gmMoraleScore >= 45 ? -0.04 : -0.10;
-    let finalConv = Math.max(0.01, Math.min(0.95, baseConv + skillConv + priceReality.conversionAdj + csiConv + moraleConv + activeConvBonus + competitorDemandConv + regionDemandConv + salesPriceKillerBonus - competitorPressure * 0.16 + playerServiceBoost * 0.2));
+    const seriesShowroomBonus = showroomStrategy.conversionBonusBySeries[modelDef.series] || 0;
+    const segmentShowroomBonus = showroomStrategy.segmentBonus[modelDef.segment] || 0;
+    const salesSpecialtyBonus = Math.min(0.12, salesSeriesBonusBySeries[modelDef.series] || 0);
+    let finalConv = Math.max(0.01, Math.min(0.95, baseConv + skillConv + priceReality.conversionAdj + csiConv + moraleConv + activeConvBonus + competitorDemandConv + regionDemandConv + seriesShowroomBonus + segmentShowroomBonus + salesSpecialtyBonus + salesPriceKillerBonus - competitorPressure * 0.16 + playerServiceBoost * 0.2));
 
     if (car.location === 'showroom') finalConv = Math.min(0.95, finalConv + 0.12);
     if (testDriveModelIds.has(modelDef.id)) finalConv = Math.min(0.95, finalConv + 0.05);
-    const isTradeIn = random() < (0.20 + (activeRegion.tradeInBoost || 0));
+    const isTradeIn = random() < (0.20 + (activeRegion.tradeInBoost || 0) + showroomStrategy.tradeInBonus);
     if (isTradeIn) finalConv = Math.min(0.95, finalConv + 0.08);
     finalConv = Math.max(0.01, Math.min(finalConv, priceReality.closeCap));
 

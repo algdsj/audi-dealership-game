@@ -8,6 +8,7 @@ import { calculateMonthlyRebateSettlement } from '../game/engine/monthEndSettlem
 import { createNextMonthlyStats, resetVirtualSalesMonth } from '../game/engine/monthlyStats.js';
 import { applyAnnualGmDividendAndDraftCredit, payGmMonthlySalary } from '../game/engine/gmCompensation.js';
 import { settleMonthlyManufacturerPolicy } from '../game/engine/manufacturerPolicy.js';
+import { settleManufacturerComplianceAudit } from '../game/engine/manufacturerNegotiation.js';
 import { rollNextMonthPurchaseTarget, settleMonthlyPurchaseTarget } from '../game/engine/manufacturerPurchaseTargets.js';
 import { settleMonthlyManufacturerCommitments } from '../game/engine/manufacturerCommitments.js';
 import { evaluateScenarioEnding } from '../game/engine/scenarioEnding.js';
@@ -35,7 +36,7 @@ import { evaluateStoryEvents } from '../game/engine/storyEventEngine.js';
 import { evaluateStaffStoryMoments, mergeStaffStoryMemoryPatch } from '../game/engine/staffStoryEngine.js';
 import { evaluateCustomerLifecycleDaily } from '../game/engine/customerLifecycle.js';
 import { evaluateSalesOpportunitiesDaily, expireSalesOpportunities } from '../game/engine/salesOpportunities.js';
-import { traitSum } from '../game/engine/staffing.js';
+import { getSeriesTraitBonus, traitSum } from '../game/engine/staffing.js';
 import { buildAfterSalesStateAfterTurn, buildCsiStateAfterTurn, buildInsuranceRenewalsAfterTurn, buildStaffStateAfterTurn } from '../game/state/dayEndState.js';
 import { writeDailyAutoSave } from './dailyAdvanceAutoSave.js';
 
@@ -386,6 +387,7 @@ export function runDailyAdvance(c) {
       marketing: m,
       salesOpportunities: nextSalesOpportunities,
       staff,
+      carModels: CAR_MODELS,
     });
     nextSalesOpportunities = salesOpportunityDaily.salesOpportunities;
     currentLogs.push(...salesOpportunityDaily.logs);
@@ -411,6 +413,7 @@ export function runDailyAdvance(c) {
       streamerAvgSkill,
       streamerLivestreamWalkinBonus: traitSum('streamer', staff.streamer?.members || [], 'livestreamWalkinBonus'),
       inventory,
+      carModels: CAR_MODELS,
       facility,
       marketEnvironment,
       activeRegion,
@@ -453,10 +456,15 @@ export function runDailyAdvance(c) {
       marketPrices,
       marketEnvironment,
       activeRegion,
+      competitors: nextCompetitors,
       facility,
       salesAvgSkill,
       salesFinanceBonus: staff.sales.members.length > 0 ? traitSum('sales', staff.sales.members, 'financeBonus') / staff.sales.members.length : 0,
       salesPriceKillerBonus: staff.sales.members.length > 0 ? traitSum('sales', staff.sales.members, 'priceSensitivity') / staff.sales.members.length : 0,
+      salesSeriesBonusBySeries: CAR_MODELS.reduce((bonus, model) => ({
+        ...bonus,
+        [model.series]: Math.min(0.12, getSeriesTraitBonus({ type: 'sales', members: staff.sales.members, series: model.series }) / Math.max(1, staff.sales.members.length)),
+      }), {}),
       strategy,
       csi: currentCsi,
       gmMoraleScore,
@@ -653,6 +661,7 @@ export function runDailyAdvance(c) {
       inventory: updatedInventory,
       marketEnvironment,
       activeRegion,
+      competitors: nextCompetitors,
       getDynamicMsrp,
     });
 
@@ -702,6 +711,10 @@ export function runDailyAdvance(c) {
         companyDailyBurn: getCompanyDailyBurn(),
         priceWarActive: competitors.priceWarActive,
         finalPayout,
+        manufacturerPolicy: newManufacturerPolicy,
+        feedback,
+        competitors: nextCompetitors,
+        csi: currentCsi,
         currentDay: day,
         absoluteDay: day + 1,
         formatMoney,
@@ -734,6 +747,27 @@ export function runDailyAdvance(c) {
       nextGmWealth = virtualAudit.gmWealth;
       todayLedger.push(...virtualAudit.ledgerItems);
       currentLogs.push(...virtualAudit.logs);
+
+      const manufacturerAudit = settleManufacturerComplianceAudit({
+        manufacturerPolicy: newManufacturerPolicy,
+        finance: f,
+        monthlyStats: mStats,
+        inventory: updatedInventory,
+        csi: { ...currentCsi, score: newCsiScore },
+        virtualSales: nextVirtualSales,
+        modelPriceOverrides,
+        carModels: CAR_MODELS,
+        activeDifficulty,
+        month,
+        absoluteDay: day + 1,
+        formatMoney,
+      });
+      f = manufacturerAudit.finance;
+      mStats = manufacturerAudit.monthlyStats;
+      newManufacturerPolicy = manufacturerAudit.manufacturerPolicy;
+      todayLedger.push(...manufacturerAudit.ledgerItems);
+      currentLogs.push(...manufacturerAudit.logs);
+      inboxItems.push(...manufacturerAudit.inboxItems);
 
       const competitorReport = settleCompetitorMonthlyReport({
         competitors: nextCompetitors,
@@ -900,22 +934,6 @@ export function runDailyAdvance(c) {
       currentLogs.push(scenarioEnding.log);
     }
 
-    const { nextFeedback, newAchievementIds } = buildFeedbackState({
-      monthlyReport: monthlyFeedbackReport,
-      context: {
-        totalSold: updatedSoldVehicles.length,
-        csiScore: newCsiScore,
-        cash: f.cash,
-        usedCarCount: finalUsedCars.length,
-      },
-    });
-    if (newAchievementIds.length > 0) {
-      newAchievementIds.forEach(id => {
-        const def = ACHIEVEMENTS.find(item => item.id === id);
-        if (def) currentLogs.push({ day: day + 1, type: 'success', message: `🏆【成就解锁】${def.name}：${def.desc}` });
-      });
-    }
-
     const newStaffObj = buildStaffStateAfterTurn({
       staff,
       dccMembers: updatedDccMembers,
@@ -930,6 +948,31 @@ export function runDailyAdvance(c) {
       complaintOccurred,
       expiredComplaintCount,
     });
+    const { nextFeedback, newAchievementIds } = buildFeedbackState({
+      monthlyReport: monthlyFeedbackReport,
+      context: {
+        totalSold: updatedSoldVehicles.length,
+        csiScore: newCsiScore,
+        complaints: newCsiObj.complaints || 0,
+        cash: f.cash,
+        usedCarCount: finalUsedCars.length,
+        cashCoverageDays: Math.floor((f.cash || 0) / Math.max(1, getCompanyDailyBurn())),
+        agedInventoryCount: updatedInventory.filter(car => (car.stockDays || 0) >= 60).length,
+        investorTrust: nextInvestorRelations.trust || 0,
+        hqRelationship: newManufacturerPolicy.roles?.hq?.relationship || 0,
+        regionRelationship: newManufacturerPolicy.roles?.region?.relationship || 0,
+        excellentMonthCount: [
+          ...(feedback.ratingHistory || []),
+          ...(monthlyFeedbackReport ? [monthlyFeedbackReport] : []),
+        ].filter(item => (item.score || 0) >= 82 || (item.investorScore || 0) >= 82).length,
+      },
+    });
+    if (newAchievementIds.length > 0) {
+      newAchievementIds.forEach(id => {
+        const def = ACHIEVEMENTS.find(item => item.id === id);
+        if (def) currentLogs.push({ day: day + 1, type: 'success', message: `🏆【成就解锁】${def.name}：${def.desc}` });
+      });
+    }
     const newInsRenewals = buildInsuranceRenewalsAfterTurn({
       insuranceRenewals,
       pending: renewalEligible.length,
@@ -996,6 +1039,8 @@ export function runDailyAdvance(c) {
         creditLimit: f.creditLimit,
         draftCreditLimit: nextDrafts.creditLimit,
         policy: newManufacturerPolicy.lastChange || '标准商务政策延续',
+        operatingReview: monthlyFeedbackReport.operatingReview,
+        quarterlyChallenge: monthlyFeedbackReport.quarterlyChallenge,
       });
     }
     setIsAdvancingDay(false);

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { COMPETITOR_BRANDS, COMPETITOR_INTEL_ACTIONS, COMPETITOR_STRATEGIES } from '../../game/config/market.js';
+import { VEHICLE_SERIES_COMPETITOR_MAP } from '../../game/config/vehicleStructure.js';
 import { buildCompetitorIntelSnapshot, getCompetitorIntelActionCost } from '../../game/engine/competitorIntel.js';
 import { MarketSharePie } from '../../shared/ui/charts.jsx';
 import { Term } from '../../shared/ui/tooltip.jsx';
@@ -171,6 +172,17 @@ export function MarketTab({
           <div className="flex flex-wrap gap-2">
             {marketEnvironment.history.slice(-6).map((item, index) => (
               <span key={`${item.month}-${index}`} className="text-[10px] px-2 py-1 rounded-full bg-sky-100 text-sky-700 border border-sky-200">M{item.month} {item.desc}</span>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 bg-white/70 rounded-lg border border-sky-100 p-3">
+          <p className="text-[10px] font-bold text-slate-500 mb-2">车系竞品映射</p>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+            {Object.entries(VEHICLE_SERIES_COMPETITOR_MAP).map(([series, meta]) => (
+              <div key={series} className="rounded-lg border border-sky-100 bg-white px-3 py-2">
+                <p className="text-xs font-black text-slate-800">{series}</p>
+                <p className="mt-1 text-[10px] font-bold text-slate-500">{meta.rivals.join(' / ')}</p>
+              </div>
             ))}
           </div>
         </div>

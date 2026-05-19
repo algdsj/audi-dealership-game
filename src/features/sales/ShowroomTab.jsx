@@ -1,4 +1,5 @@
 import React from 'react';
+import { VEHICLE_SERIES_PRICE_STRATEGIES, VEHICLE_SERIES_STRATEGY } from '../../game/config/vehicleStructure.js';
 import { Icons } from '../../shared/ui/icons.jsx';
 import { Term } from '../../shared/ui/tooltip.jsx';
 
@@ -14,6 +15,7 @@ export function ShowroomTab({
   formatMoney,
   getDynamicRebate,
   getDynamicMsrp,
+  onApplySeriesPriceStrategy,
   onAutoShowroom,
   onApplySubsidy,
   onMoveCar,
@@ -27,6 +29,13 @@ export function ShowroomTab({
   const showroomUsed = showroomCars.length;
   const warehouseUsed = inventory.filter(car => car.location === 'warehouse').length;
   const usedCarStock = usedCars.filter(car => car.status === 'stock');
+  const inventorySeries = [...new Set(carModels
+    .filter(model => inventory.some(car => car.modelId === model.id))
+    .map(model => model.series))]
+    .sort((a, b) => (VEHICLE_SERIES_STRATEGY[b]?.showroomWeight || 0) - (VEHICLE_SERIES_STRATEGY[a]?.showroomWeight || 0));
+  const displayedSeries = [...new Set(showroomCars
+    .map(car => carModels.find(model => model.id === car.modelId)?.series)
+    .filter(Boolean))];
 
   return (
     <div>
@@ -71,11 +80,20 @@ export function ShowroomTab({
             );
           })}
         </div>
-        <p className="text-xs text-slate-400">每款展车为对应车型带来 +12% 转化加成；展示车型种类越多，自然进店客流越多 (每款+0.8人/天)</p>
+        <p className="text-xs text-slate-400">每款展车为对应车型带来基础 +12% 转化；不同车系还会带来客流、客群或竞品抵抗效果。</p>
+        {displayedSeries.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {displayedSeries.map(series => (
+              <span key={series} className="rounded border border-blue-100 bg-white px-2 py-1 text-[10px] font-bold text-blue-700">
+                {series}：{VEHICLE_SERIES_STRATEGY[series]?.showroomEffect?.desc || VEHICLE_SERIES_STRATEGY[series]?.role || '展厅展示'}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
-        {['A5', 'A6', 'Q5'].map(series => {
+        {inventorySeries.map(series => {
           const seriesModels = carModels.filter(model => model.series === series);
           const hasAnyInventory = seriesModels.some(model => inventory.some(car => car.modelId === model.id));
 
@@ -86,6 +104,19 @@ export function ShowroomTab({
               <div className="bg-slate-100 px-5 py-3 border-b border-slate-200 flex items-center gap-2">
                 <span className="font-black text-xl text-slate-800">{series} 车系</span>
                 <span className="text-xs px-2 py-1 bg-slate-200 rounded-full text-slate-600">目标客群: {seriesModels[0].segment}</span>
+                {VEHICLE_SERIES_STRATEGY[series]?.role && (
+                  <span className="text-xs px-2 py-1 bg-blue-100 rounded-full text-blue-700">{VEHICLE_SERIES_STRATEGY[series].role}</span>
+                )}
+                {VEHICLE_SERIES_PRICE_STRATEGIES[series] && (
+                  <button
+                    type="button"
+                    onClick={() => onApplySeriesPriceStrategy?.(series)}
+                    className="ml-auto rounded bg-white px-3 py-1.5 text-xs font-black text-slate-700 border border-slate-200 hover:bg-slate-50"
+                    title={VEHICLE_SERIES_PRICE_STRATEGIES[series].desc}
+                  >
+                    应用{VEHICLE_SERIES_PRICE_STRATEGIES[series].label}
+                  </button>
+                )}
               </div>
               <div className="divide-y divide-slate-100">
                 {seriesModels.map(model => {
@@ -161,7 +192,7 @@ export function ShowroomTab({
                               🚗 设试驾
                             </button>
                           )}
-                          {showroomCount > 0 && <span className="text-xs text-green-600 font-bold">✅ +12%转化</span>}
+                          {showroomCount > 0 && <span className="text-xs text-green-600 font-bold">✅ +12%转化 · {VEHICLE_SERIES_STRATEGY[series]?.showroomEffect?.desc || '展厅展示'}</span>}
                         </div>
                       </div>
                       <div className="w-full md:w-auto bg-white p-4 rounded-lg border border-slate-200 shadow-sm">

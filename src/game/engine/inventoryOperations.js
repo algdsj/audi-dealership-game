@@ -1,3 +1,6 @@
+import { getSeriesStrategy } from './vehicleStructure.js';
+import { VEHICLE_SERIES_PRICE_STRATEGIES } from '../config/vehicleStructure.js';
+
 export const prepareInventorySubsidy = ({
   modelId,
   inventory,
@@ -114,18 +117,26 @@ export const moveInventoryCar = ({
 export const autoArrangeShowroom = ({
   inventory,
   facility,
+  carModels = [],
 }) => {
   const showroomUsed = inventory.filter(car => car.location === 'showroom').length;
   const availableSpots = facility.showroomSpots - showroomUsed;
   if (availableSpots <= 0) return { status: 'showroom_full', alert: { title: '展厅已满', message: '展厅展位已满，无法布展。' } };
 
   const displayedModelIds = new Set(inventory.filter(car => car.location === 'showroom').map(car => car.modelId));
+  const modelMap = new Map((carModels || []).map(model => [model.id, model]));
+  const getShowroomWeight = modelId => {
+    const series = modelMap.get(modelId)?.series;
+    return getSeriesStrategy(series)?.showroomWeight || 0.5;
+  };
   const candidates = [...new Set(inventory.filter(car => car.location === 'warehouse').map(car => car.modelId))]
-    .filter(modelId => !displayedModelIds.has(modelId));
+    .filter(modelId => !displayedModelIds.has(modelId))
+    .sort((a, b) => getShowroomWeight(b) - getShowroomWeight(a));
 
   const updatedInventory = [...inventory];
   if (candidates.length === 0) {
-    const warehouseModels = [...new Set(inventory.filter(car => car.location === 'warehouse').map(car => car.modelId))];
+    const warehouseModels = [...new Set(inventory.filter(car => car.location === 'warehouse').map(car => car.modelId))]
+      .sort((a, b) => getShowroomWeight(b) - getShowroomWeight(a));
     if (warehouseModels.length === 0) return { status: 'no_stock', alert: { title: '无可布展车辆', message: '仓储区无车辆可上展。' } };
 
     const toDisplay = warehouseModels.slice(0, availableSpots);
@@ -178,5 +189,48 @@ export const commitModelInventoryPrice = ({
     status: 'committed',
     modelPriceOverrides: { [modelId]: price },
     inventory: inventory.map(car => car.modelId === modelId ? { ...car, price } : car),
+  };
+};
+
+export const applySeriesPriceStrategy = ({
+  series,
+  inventory,
+  carModels,
+  marketPrices = {},
+  getDynamicMsrp,
+}) => {
+  const strategy = VEHICLE_SERIES_PRICE_STRATEGIES[series];
+  if (!strategy) return { status: 'invalid' };
+  const seriesModels = carModels.filter(model => model.series === series);
+  if (seriesModels.length === 0) return { status: 'invalid' };
+
+  const modelPriceOverrides = {};
+  const pricesByModel = {};
+  seriesModels.forEach(model => {
+    const dynamicMsrp = getDynamicMsrp(model.id);
+    const marketPrice = marketPrices[model.id] || dynamicMsrp;
+    const target = Math.round(Math.min(
+      dynamicMsrp * strategy.msrpRatio,
+      marketPrice * strategy.marketRatio,
+    ) / 1000) * 1000;
+    const minPrice = Math.round(model.baseCost * strategy.minCostRatio / 1000) * 1000;
+    const maxPrice = Math.round(dynamicMsrp * 1.12 / 1000) * 1000;
+    const price = Math.max(minPrice, Math.min(maxPrice, target));
+    modelPriceOverrides[model.id] = price;
+    pricesByModel[model.id] = price;
+  });
+
+  const changedCount = inventory.filter(car => pricesByModel[car.modelId] != null).length;
+  return {
+    status: 'applied',
+    series,
+    strategy,
+    modelPriceOverrides,
+    inventory: inventory.map(car => pricesByModel[car.modelId] != null ? { ...car, price: pricesByModel[car.modelId] } : car),
+    changedCount,
+    log: {
+      type: 'info',
+      message: `🏷️【车系价格策略】${series} 已应用“${strategy.label}”，同步调整 ${changedCount} 台库存车标价。`,
+    },
   };
 };

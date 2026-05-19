@@ -46,12 +46,14 @@ import {
 import { runDailyAdvance } from '../src/app/runDailyAdvance.js';
 
 const REPORT_DIR = path.resolve('docs/balance-reports');
-const TODAY = '2026-05-16';
+const TODAY = process.env.BALANCE_REPORT_DATE || new Date().toISOString().slice(0, 10);
 const DEFAULT_SAMPLES = Number(process.env.BALANCE_SAMPLES || 8);
 const SCENARIO_IDS = (process.env.BALANCE_SCENARIOS || 'survive6,double12,star12').split(',').filter(Boolean);
 const REGION_IDS = (process.env.BALANCE_REGIONS || DEALER_REGIONS.map(item => item.id).join(',')).split(',').filter(Boolean);
 const DIFFICULTY_IDS = (process.env.BALANCE_DIFFICULTIES || DIFFICULTY_MODES.map(item => item.id).join(',')).split(',').filter(Boolean);
 const INVESTOR_IDS = (process.env.BALANCE_INVESTORS || 'cash_guardian,volume_growth,roi_first,brand_keeper,gambler').split(',').filter(Boolean);
+
+const labelById = (items, id, fallback = id) => items.find(item => item.id === id)?.name || fallback;
 
 const STRATEGIES = {
   conservative: {
@@ -227,6 +229,14 @@ function initializeSimulation({ region, difficulty, investor, scenario, strategy
     usedCars: [],
     usedCarShowroom: createInitialUsedCarShowroom(),
     virtualSales: createInitialVirtualSales(),
+    simulationMetrics: {
+      minCash: finance.cash,
+      maxCreditUsage: 0,
+      minTrust: 72,
+      minCsi: csi.score,
+      maxInventoryAndTransit: 0,
+      monthEndCount: 0,
+    },
   };
 }
 
@@ -504,10 +514,10 @@ function maintainInventory(state, strategy) {
   if (needed <= 0) return;
 
   const modelOrder = strategy === STRATEGIES.conservative
-    ? ['a5_40', 'q5_40', 'a6_40', 'a5_45', 'q5_45', 'a6_45']
+    ? ['A3_L', 'A3_M', 'A5_L', 'Q5_L', 'A6_L', 'Q6_ETRON_L', 'Q6_ETRON_M', 'A5_M', 'Q5_M', 'A6_M']
     : strategy === STRATEGIES.aggressive
-    ? ['a6_45', 'q5_45', 'a5_45', 'a6_40', 'q5_40', 'a5_40']
-    : ['a6_40', 'q5_40', 'a5_40', 'a6_45', 'q5_45', 'a5_45'];
+    ? ['A6_H', 'Q5_H', 'Q6_ETRON_H', 'A5_H', 'A6_M', 'Q5_M', 'Q6_ETRON_M', 'A3_H', 'A3_M']
+    : ['A6_M', 'Q5_M', 'A5_M', 'Q6_ETRON_M', 'A3_M', 'A6_L', 'Q5_L', 'A5_L', 'Q6_ETRON_L', 'A3_L'];
 
   const modelId = modelOrder[(Math.floor(state.day / strategy.orderCadence)) % modelOrder.length];
   const model = CAR_MODELS.find(item => item.id === modelId) || CAR_MODELS[0];
@@ -621,6 +631,12 @@ function collectSnapshot(state) {
     loan: state.finance.loan,
     creditLimit: state.finance.creditLimit,
     creditUsage: state.finance.creditLimit > 0 ? state.finance.loan / state.finance.creditLimit : 0,
+    maxCreditUsage: state.simulationMetrics?.maxCreditUsage ?? 0,
+    minCash: state.simulationMetrics?.minCash ?? state.finance.cash,
+    minTrust: state.simulationMetrics?.minTrust ?? state.investorRelations.trust,
+    minCsi: state.simulationMetrics?.minCsi ?? state.csi.score,
+    maxInventoryAndTransit: state.simulationMetrics?.maxInventoryAndTransit ?? state.inventory.length,
+    monthEndCount: state.simulationMetrics?.monthEndCount ?? 0,
     netAssets: assets.netAssets,
     inventory: state.inventory.length,
     pendingOrders: state.pendingOrders.reduce((sum, order) => sum + order.quantity, 0),
@@ -633,13 +649,26 @@ function collectSnapshot(state) {
   };
 }
 
+function updateSimulationMetrics(state) {
+  const metrics = state.simulationMetrics;
+  if (!metrics) return;
+  const pendingUnits = state.pendingOrders.reduce((sum, order) => sum + order.quantity, 0);
+  const creditUsage = state.finance.creditLimit > 0 ? state.finance.loan / state.finance.creditLimit : 0;
+  metrics.minCash = Math.min(metrics.minCash, state.finance.cash);
+  metrics.maxCreditUsage = Math.max(metrics.maxCreditUsage, creditUsage);
+  metrics.minTrust = Math.min(metrics.minTrust, state.investorRelations.trust);
+  metrics.minCsi = Math.min(metrics.minCsi, state.csi.score);
+  metrics.maxInventoryAndTransit = Math.max(metrics.maxInventoryAndTransit, state.inventory.length + pendingUnits);
+  if (((state.day - 1) % 30) + 1 === 1 && state.day > 1) metrics.monthEndCount += 1;
+}
+
 async function runOneSimulation({ region, difficulty, investor, scenario, strategyId, seedIndex }) {
-  const state = initializeSimulation({ region, difficulty, investor, scenario, strategyId, seedIndex });
   const strategy = STRATEGIES[strategyId];
   const rng = createSeededRandom(`${region.id}:${difficulty.id}:${investor.id}:${scenario.id}:${strategyId}:${seedIndex}`);
   const originalRandom = Math.random;
   Math.random = rng;
   try {
+    const state = initializeSimulation({ region, difficulty, investor, scenario, strategyId, seedIndex });
     const maxDays = scenario.months > 0 ? scenario.months * 30 + 5 : 365;
     while (state.gameState === 'playing' && state.day < maxDays) {
       resolvePendingCases(state, strategy);
@@ -647,24 +676,25 @@ async function runOneSimulation({ region, difficulty, investor, scenario, strate
       maintainInventory(state, strategy);
       const context = buildRunContext(state);
       runDailyAdvance(context);
+      updateSimulationMetrics(state);
     }
+    const snapshot = collectSnapshot(state);
+    return {
+      region: region.id,
+      difficulty: difficulty.id,
+      investor: investor.id,
+      scenario: scenario.id,
+      strategy: strategyId,
+      seed: seedIndex,
+      ...snapshot,
+      bankruptcy: state.gameState === 'bankrupt',
+      dismissed: state.gameState === 'dismissed',
+      won: state.gameState === 'won',
+      months: Math.floor((state.day - 1) / 30) + 1,
+    };
   } finally {
     Math.random = originalRandom;
   }
-  const snapshot = collectSnapshot(state);
-  return {
-    region: region.id,
-    difficulty: difficulty.id,
-    investor: investor.id,
-    scenario: scenario.id,
-    strategy: strategyId,
-    seed: seedIndex,
-    ...snapshot,
-    bankruptcy: state.gameState === 'bankrupt',
-    dismissed: state.gameState === 'dismissed',
-    won: state.gameState === 'won',
-    months: Math.floor((state.day - 1) / 30) + 1,
-  };
 }
 
 const mean = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -692,6 +722,11 @@ function summarize(results) {
       avgCash: mean(rows.map(row => row.cash)),
       avgLoan: mean(rows.map(row => row.loan)),
       avgCreditUsage: mean(rows.map(row => row.creditUsage)),
+      avgMaxCreditUsage: mean(rows.map(row => row.maxCreditUsage)),
+      avgMinCash: mean(rows.map(row => row.minCash)),
+      avgMinTrust: mean(rows.map(row => row.minTrust)),
+      avgMinCsi: mean(rows.map(row => row.minCsi)),
+      avgMaxInventoryAndTransit: mean(rows.map(row => row.maxInventoryAndTransit)),
       avgSales: mean(rows.map(row => row.soldVehicles)),
       avgInventory: mean(rows.map(row => row.inventory)),
       avgCsi: mean(rows.map(row => row.csi)),
@@ -707,6 +742,72 @@ function summarize(results) {
 
 const money = value => `¥${Math.round(value).toLocaleString()}`;
 const percent = value => `${Math.round(value * 100)}%`;
+const oneDecimal = value => Number.isFinite(value) ? value.toFixed(1) : '0.0';
+
+function summarizeBy(rawRows, keyName) {
+  const ids = [...new Set(rawRows.map(row => row[keyName]))].sort();
+  return ids.map(id => {
+    const rows = rawRows.filter(row => row[keyName] === id);
+    return {
+      id,
+      samples: rows.length,
+      winRate: pct(rows.filter(row => row.won).length, rows.length),
+      bankruptcyRate: pct(rows.filter(row => row.bankruptcy).length, rows.length),
+      dismissalRate: pct(rows.filter(row => row.dismissed).length, rows.length),
+      avgNetAssets: mean(rows.map(row => row.netAssets)),
+      avgSales: mean(rows.map(row => row.soldVehicles)),
+      avgMinCash: mean(rows.map(row => row.minCash)),
+      avgMaxCreditUsage: mean(rows.map(row => row.maxCreditUsage)),
+      avgMinTrust: mean(rows.map(row => row.minTrust)),
+      avgMinCsi: mean(rows.map(row => row.minCsi)),
+    };
+  });
+}
+
+function buildBalanceFindings({ byDifficulty, byScenario, byStrategy, summaryRows }) {
+  const findings = [];
+  const rookie = byDifficulty.find(row => row.difficulty === 'rookie');
+  const standard = byDifficulty.find(row => row.difficulty === 'standard');
+  const hardcore = byDifficulty.find(row => row.difficulty === 'hardcore');
+  if (rookie && standard && rookie.bankruptcyRate > standard.bankruptcyRate + 0.03) {
+    findings.push('新手难度破产率高于标准难度，说明现金、授信、任务或事件容错需要回看。');
+  }
+  if (hardcore && standard && hardcore.winRate > standard.winRate + 0.12) {
+    findings.push('硬核难度胜率明显高于标准难度，难度梯度可能被策略或区域收益抵消。');
+  }
+  if (hardcore && hardcore.bankruptcyRate >= 0.35) {
+    findings.push('硬核难度破产率较高，注意不要让现金流、厂家任务和投资人差评形成无法挽回的连环惩罚。');
+  }
+
+  byScenario
+    .filter(row => row.winRate <= 0.35 || row.bankruptcyRate >= 0.3)
+    .forEach(row => {
+      findings.push(`${labelById(GAME_SCENARIOS, row.id)} 胜率/破产率偏紧，适合检查剧本目标、月评阈值和厂家目标叠加压力。`);
+    });
+
+  const strategyRank = [...byStrategy].sort((a, b) => b.winRate - a.winRate);
+  if (strategyRank.length >= 2 && strategyRank[0].winRate - strategyRank[1].winRate >= 0.18) {
+    findings.push(`${STRATEGIES[strategyRank[0].id].label} 胜率显著领先，可能存在单一最优打法，需要回看资金成本、营销 ROI 或成交策略收益。`);
+  }
+  const conservative = byStrategy.find(row => row.id === 'conservative');
+  const balanced = byStrategy.find(row => row.id === 'balanced');
+  const aggressive = byStrategy.find(row => row.id === 'aggressive');
+  if (conservative && balanced && conservative.avgSales < balanced.avgSales * 0.4) {
+    findings.push('保守现金流几乎不破产，但销量显著不足，说明它更像“苟活策略”，不应该被设计成长期达成 12 个月目标的主路。');
+  }
+  if (aggressive && balanced && aggressive.bankruptcyRate >= balanced.bankruptcyRate + 0.05) {
+    findings.push('激进冲量能换取销量和净资产上限，但破产率明显抬升，当前风险收益关系基本成立。');
+  }
+
+  const cashCrush = summaryRows
+    .filter(row => row.avgMinCash < -500000 || row.avgMaxCreditUsage >= 0.95)
+    .slice(0, 3);
+  cashCrush.forEach(row => {
+    findings.push(`${labelById(DEALER_REGIONS, row.region)} / ${labelById(DIFFICULTY_MODES, row.difficulty)} / ${labelById(GAME_SCENARIOS, row.scenario)} 在 ${STRATEGIES[row.strategy].label} 下现金或授信压力过高。`);
+  });
+
+  return findings.length > 0 ? findings : ['未发现明显数值断层；下一轮可扩大样本并加入人工策略回放验证。'];
+}
 
 function buildMarkdown(summaryRows, rawRows) {
   const all = summaryRows;
@@ -722,20 +823,26 @@ function buildMarkdown(summaryRows, rawRows) {
       avgCsi: mean(rows.map(row => row.csi)),
     };
   });
+  const byScenario = summarizeBy(rawRows, 'scenario');
+  const byInvestor = summarizeBy(rawRows, 'investor');
   const byStrategy = Object.keys(STRATEGIES).map(id => {
     const rows = rawRows.filter(row => row.strategy === id);
     return {
+      id,
       strategy: id,
       samples: rows.length,
       winRate: pct(rows.filter(row => row.won).length, rows.length),
       bankruptcyRate: pct(rows.filter(row => row.bankruptcy).length, rows.length),
       avgNetAssets: mean(rows.map(row => row.netAssets)),
       avgSales: mean(rows.map(row => row.soldVehicles)),
+      avgMinCash: mean(rows.map(row => row.minCash)),
+      avgMaxCreditUsage: mean(rows.map(row => row.maxCreditUsage)),
     };
   });
+  const findings = buildBalanceFindings({ byDifficulty, byScenario, byStrategy, summaryRows });
   const risky = all
-    .filter(row => row.bankruptcyRate >= 0.5 || row.winRate <= 0.1 || row.avgCreditUsage >= 0.9)
-    .sort((a, b) => b.bankruptcyRate - a.bankruptcyRate || a.winRate - b.winRate)
+    .filter(row => row.bankruptcyRate >= 0.5 || row.winRate <= 0.1 || row.avgMaxCreditUsage >= 0.9 || row.avgMinCash < -500000)
+    .sort((a, b) => b.bankruptcyRate - a.bankruptcyRate || b.avgMaxCreditUsage - a.avgMaxCreditUsage || a.winRate - b.winRate)
     .slice(0, 20);
   const outliers = [...rawRows]
     .sort((a, b) => a.netAssets - b.netAssets)
@@ -752,22 +859,43 @@ function buildMarkdown(summaryRows, rawRows) {
   lines.push('- 使用现有 `runDailyAdvance` 日结主循环和 `game/engine` 纯函数。');
   lines.push('- 自动玩家策略包含保守现金流、均衡经营、激进冲量三类。');
   lines.push('- 自动玩家会维护库存、布展、处理价格审批、重点客户、投诉和经营事件。');
+  lines.push('- 报告同时记录过程风险：最低现金、最高授信占用、最低投资人信任、最低 CSI 和峰值库存/在途。');
   lines.push('- 本轮重点看宏观平衡，不等同于真人最优策略或完整经济学求解。');
+  lines.push('');
+  lines.push('## 诊断结论');
+  lines.push('');
+  findings.forEach(item => lines.push(`- ${item}`));
   lines.push('');
   lines.push('## 难度汇总');
   lines.push('');
   lines.push('| 难度 | 样本 | 胜率 | 破产率 | 平均净资产 | 平均销量 | 平均 CSI |');
   lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: |');
   byDifficulty.forEach(row => {
-    lines.push(`| ${row.difficulty} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${money(row.avgNetAssets)} | ${row.avgSales.toFixed(1)} | ${row.avgCsi.toFixed(1)} |`);
+    lines.push(`| ${labelById(DIFFICULTY_MODES, row.difficulty)} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${money(row.avgNetAssets)} | ${oneDecimal(row.avgSales)} | ${oneDecimal(row.avgCsi)} |`);
+  });
+  lines.push('');
+  lines.push('## 剧本汇总');
+  lines.push('');
+  lines.push('| 剧本 | 样本 | 胜率 | 破产率 | 解聘率 | 平均净资产 | 平均最低现金 | 最高授信占用 |');
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
+  byScenario.forEach(row => {
+    lines.push(`| ${labelById(GAME_SCENARIOS, row.id)} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${percent(row.dismissalRate)} | ${money(row.avgNetAssets)} | ${money(row.avgMinCash)} | ${percent(row.avgMaxCreditUsage)} |`);
+  });
+  lines.push('');
+  lines.push('## 投资人压力汇总');
+  lines.push('');
+  lines.push('| 投资人 | 样本 | 胜率 | 解聘率 | 平均最低信任 | 平均最低现金 | 平均销量 |');
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: |');
+  byInvestor.forEach(row => {
+    lines.push(`| ${labelById(INVESTOR_PROFILES, row.id)} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.dismissalRate)} | ${oneDecimal(row.avgMinTrust)} | ${money(row.avgMinCash)} | ${oneDecimal(row.avgSales)} |`);
   });
   lines.push('');
   lines.push('## 策略汇总');
   lines.push('');
-  lines.push('| 策略 | 样本 | 胜率 | 破产率 | 平均净资产 | 平均销量 |');
-  lines.push('| --- | ---: | ---: | ---: | ---: | ---: |');
+  lines.push('| 策略 | 样本 | 胜率 | 破产率 | 平均净资产 | 平均销量 | 平均最低现金 | 最高授信占用 |');
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
   byStrategy.forEach(row => {
-    lines.push(`| ${STRATEGIES[row.strategy].label} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${money(row.avgNetAssets)} | ${row.avgSales.toFixed(1)} |`);
+    lines.push(`| ${STRATEGIES[row.strategy].label} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${money(row.avgNetAssets)} | ${oneDecimal(row.avgSales)} | ${money(row.avgMinCash)} | ${percent(row.avgMaxCreditUsage)} |`);
   });
   lines.push('');
   lines.push('## 高风险组合');
@@ -775,10 +903,10 @@ function buildMarkdown(summaryRows, rawRows) {
   if (risky.length === 0) {
     lines.push('未发现破产率 >= 50%、胜率 <= 10% 或平均授信使用率 >= 90% 的组合。');
   } else {
-    lines.push('| 区域 | 难度 | 剧本 | 策略 | 样本 | 胜率 | 破产率 | 平均授信占用 | 平均净资产 |');
-    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |');
+    lines.push('| 区域 | 难度 | 剧本 | 策略 | 样本 | 胜率 | 破产率 | 最高授信占用 | 最低现金 | 平均净资产 |');
+    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |');
     risky.forEach(row => {
-      lines.push(`| ${row.region} | ${row.difficulty} | ${row.scenario} | ${STRATEGIES[row.strategy].label} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${percent(row.avgCreditUsage)} | ${money(row.avgNetAssets)} |`);
+      lines.push(`| ${labelById(DEALER_REGIONS, row.region)} | ${labelById(DIFFICULTY_MODES, row.difficulty)} | ${labelById(GAME_SCENARIOS, row.scenario)} | ${STRATEGIES[row.strategy].label} | ${row.samples} | ${percent(row.winRate)} | ${percent(row.bankruptcyRate)} | ${percent(row.avgMaxCreditUsage)} | ${money(row.avgMinCash)} | ${money(row.avgNetAssets)} |`);
     });
   }
   lines.push('');
@@ -787,7 +915,7 @@ function buildMarkdown(summaryRows, rawRows) {
   lines.push('| 区域 | 难度 | 投资人 | 剧本 | 策略 | seed | 状态 | 天数 | 净资产 | 现金 | 负债 | 销量 | CSI |');
   lines.push('| --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |');
   outliers.forEach(row => {
-    lines.push(`| ${row.region} | ${row.difficulty} | ${row.investor} | ${row.scenario} | ${STRATEGIES[row.strategy].label} | ${row.seed} | ${row.gameState} | ${row.day} | ${money(row.netAssets)} | ${money(row.cash)} | ${money(row.loan)} | ${row.soldVehicles} | ${row.csi.toFixed(1)} |`);
+    lines.push(`| ${labelById(DEALER_REGIONS, row.region)} | ${labelById(DIFFICULTY_MODES, row.difficulty)} | ${labelById(INVESTOR_PROFILES, row.investor)} | ${labelById(GAME_SCENARIOS, row.scenario)} | ${STRATEGIES[row.strategy].label} | ${row.seed} | ${row.gameState} | ${row.day} | ${money(row.netAssets)} | ${money(row.cash)} | ${money(row.loan)} | ${row.soldVehicles} | ${oneDecimal(row.csi)} |`);
   });
   lines.push('');
   lines.push('## 初步判读规则');

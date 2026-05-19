@@ -5,6 +5,7 @@ import { Term } from '../../shared/ui/tooltip.jsx';
 export function RebateTab({
   aiAdvice,
   isGeneratingAdvice,
+  manufacturerInteraction,
   manufacturerPolicy,
   monthlyStats,
   targetProgress,
@@ -14,6 +15,7 @@ export function RebateTab({
   csi,
   formatMoney,
   onAskAIConsultant,
+  onManufacturerResourceRequest,
 }) {
   const purchaseTarget = manufacturerPolicy.purchaseTarget || { targetUnits: 0, purchasedUnits: 0, history: [] };
   const hqRole = manufacturerPolicy.roles?.hq || { label: '厂家总部', relationship: 62, attitudeLabel: '稳定', tone: 'text-blue-700 bg-blue-50 border-blue-200', focus: [] };
@@ -22,8 +24,15 @@ export function RebateTab({
     ? Math.round((purchaseTarget.purchasedUnits / purchaseTarget.targetUnits) * 100)
     : 0;
   const purchaseExtraUnits = Math.max(0, (purchaseTarget.purchasedUnits || 0) - (purchaseTarget.targetUnits || 0));
+  const structureItems = purchaseTarget.structure?.items || [];
   const activeCommitments = manufacturerPolicy.commitments?.active || [];
   const commitmentHistory = manufacturerPolicy.commitments?.history || [];
+  const interaction = manufacturerInteraction || { demands: { hq: [], region: [] }, auditRisk: { riskScore: 0, level: 'healthy', factors: [] }, resourceRequests: [] };
+  const auditTone = interaction.auditRisk?.level === 'danger'
+    ? 'text-red-700 bg-red-50 border-red-200'
+    : interaction.auditRisk?.level === 'watch'
+    ? 'text-amber-700 bg-amber-50 border-amber-200'
+    : 'text-emerald-700 bg-emerald-50 border-emerald-200';
   const getCommitmentActual = commitment => (
     commitment.typeId === 'purchase_floor'
       ? (monthlyStats.purchaseUnits || 0)
@@ -111,6 +120,124 @@ export function RebateTab({
         )}
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+        <div className="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+            <div>
+              <h3 className="font-bold text-lg text-slate-800">厂家互动博弈</h3>
+              <p className="text-sm text-slate-500 mt-1">总部管品牌和合规，大区管采购和份额；同一动作会同时影响两边的关系。</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={(hqRole.tone || 'text-blue-700 bg-blue-50 border-blue-200') + ' rounded-full border px-3 py-1 text-xs font-black'}>总部 {Math.round(hqRole.relationship || 0)}</span>
+              <span className={(regionRole.tone || 'text-blue-700 bg-blue-50 border-blue-200') + ' rounded-full border px-3 py-1 text-xs font-black'}>大区 {Math.round(regionRole.relationship || 0)}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { id: 'hq', title: '总部本月诉求', pressure: interaction.hqPressure, items: interaction.demands?.hq || [] },
+              { id: 'region', title: '大区本月诉求', pressure: interaction.regionPressure, items: interaction.demands?.region || [] },
+            ].map(group => (
+              <div key={group.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h4 className="font-black text-slate-900">{group.title}</h4>
+                  <span className="rounded-full border border-white bg-white px-2 py-1 text-[10px] font-black text-slate-500">{group.pressure}</span>
+                </div>
+                <div className="space-y-3">
+                  {group.items.map(item => (
+                    <div key={item.id}>
+                      <p className="text-sm font-black text-slate-700">{item.label}</p>
+                      <p className="mt-1 text-xs font-bold leading-5 text-slate-500">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-lg text-slate-800">总部合规稽核</h3>
+              <p className="text-sm text-slate-500 mt-1">价格、CSI、虚出和长库龄会累计风险。</p>
+            </div>
+            <span className={auditTone + ' rounded-full border px-3 py-1 text-xs font-black'}>{interaction.auditRisk?.riskScore || 0}</span>
+          </div>
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={(interaction.auditRisk?.level === 'danger' ? 'bg-red-500' : interaction.auditRisk?.level === 'watch' ? 'bg-amber-500' : 'bg-emerald-500') + ' h-full'}
+              style={{ width: `${Math.min(100, interaction.auditRisk?.riskScore || 0)}%` }}
+            ></div>
+          </div>
+          <div className="mt-4 space-y-2">
+            {(interaction.auditRisk?.factors || []).length === 0 ? (
+              <p className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">暂无明显合规疑点。</p>
+            ) : interaction.auditRisk.factors.map(item => (
+              <div key={item.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <p className="text-xs font-black text-slate-700">{item.label}</p>
+                <p className="mt-1 text-[10px] font-bold text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+          {interaction.auditHistory?.length > 0 && (
+            <p className="mt-3 text-[10px] font-bold text-slate-400">最近稽核：M{interaction.auditHistory[0].month} · {formatMoney(interaction.auditHistory[0].penalty)}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+          <div>
+            <h3 className="font-bold text-lg text-slate-800">厂家资源谈判</h3>
+            <p className="text-sm text-slate-500 mt-1">用采购进度、总部信任和大区关系换真实资源；条件不够时按钮会锁定。</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+            {interaction.resourceRequests?.filter(item => item.available).length || 0} 项可谈
+          </span>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {(interaction.resourceRequests || []).map(request => (
+            <div key={request.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-black text-slate-900">{request.label}</p>
+                  <p className="mt-1 text-xs font-bold leading-5 text-slate-500">{request.desc}</p>
+                </div>
+                <span className="shrink-0 rounded-full border border-white bg-white px-2 py-1 text-[10px] font-black text-slate-500">{request.ownerRole === 'hq' ? '总部' : '大区'}</span>
+              </div>
+              <div className="mt-3 rounded-lg border border-white bg-white p-3 text-xs font-bold text-slate-600">
+                {request.cashAmount > 0 && <p>现金支持：{formatMoney(request.cashAmount)}</p>}
+                {request.creditAmount > 0 && <p>授信支持：{formatMoney(request.creditAmount)}</p>}
+                {request.auditRiskDelta && <p>合规风险：{request.auditRiskDelta}</p>}
+              </div>
+              {!request.available && (
+                <p className="mt-2 text-[10px] font-bold leading-4 text-amber-600">{request.blockers.join('、')}</p>
+              )}
+              <button
+                type="button"
+                disabled={!request.available}
+                onClick={() => onManufacturerResourceRequest?.(request.id)}
+                className={(request.available ? 'bg-slate-900 text-white hover:bg-slate-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed') + ' mt-3 w-full rounded-lg px-3 py-2 text-xs font-black transition-colors'}
+              >
+                {request.available ? '发起谈判' : '条件不足'}
+              </button>
+            </div>
+          ))}
+        </div>
+        {interaction.resourceHistory?.length > 0 && (
+          <div className="mt-4 space-y-1">
+            <p className="text-[10px] font-bold text-slate-500">资源谈判历史</p>
+            {interaction.resourceHistory.slice(0, 4).map(item => (
+              <div key={`${item.id}_${item.day}`} className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                <span className="font-black text-slate-800">M{item.month}</span>
+                <span>{item.resourceLabel}</span>
+                <span className="ml-auto font-bold">{item.cashAmount ? formatMoney(item.cashAmount) : item.creditAmount ? `授信${formatMoney(item.creditAmount)}` : '合规缓冲'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm relative overflow-hidden">
         <div className="flex justify-between items-center mb-4 relative z-10">
           <h3 className="font-bold text-lg text-slate-800">本月厂家考核指标</h3>
@@ -193,6 +320,38 @@ export function RebateTab({
             <p className="text-sm font-black text-amber-800">{purchaseTarget.lastReward ? `${purchaseTarget.lastReward.label} ${formatMoney(purchaseTarget.lastReward.amount)}` : '暂无'}</p>
           </div>
         </div>
+        {structureItems.length > 0 && (
+          <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-sm font-black text-slate-800">车型结构任务</p>
+              <span className="rounded-full border border-white bg-white px-2 py-1 text-[10px] font-black text-slate-500">
+                {structureItems.filter(item => (item.purchasedUnits || 0) >= (item.targetUnits || 0)).length}/{structureItems.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {structureItems.map(item => {
+                const progress = item.targetUnits > 0 ? Math.min(100, Math.round(((item.purchasedUnits || 0) / item.targetUnits) * 100)) : 0;
+                const achieved = (item.purchasedUnits || 0) >= (item.targetUnits || 0);
+                return (
+                  <div key={item.id} className="rounded-lg border border-white bg-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-black text-slate-800">{item.label}</p>
+                        <p className="mt-1 text-[10px] font-bold leading-4 text-slate-500">{item.desc}</p>
+                      </div>
+                      <span className={(achieved ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200') + ' shrink-0 rounded-full border px-2 py-1 text-[10px] font-black'}>
+                        {item.purchasedUnits || 0}/{item.targetUnits || 0}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className={(achieved ? 'bg-emerald-500' : 'bg-indigo-500') + ' h-full'} style={{ width: `${progress}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {(purchaseTarget.history || []).length > 0 && (
           <div className="mt-4 space-y-1">
             <p className="text-[10px] font-bold text-slate-500">采购目标历史</p>

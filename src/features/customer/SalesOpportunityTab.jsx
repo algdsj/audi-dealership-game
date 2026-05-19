@@ -107,6 +107,7 @@ function OpportunityCard({
   const modelName = opportunity.modelName || opportunity.model || opportunity.vehicleName || '意向车型未定';
   const sourceName = opportunity.channelName || opportunity.sourceName || opportunity.source;
   const owner = opportunity.owner || opportunity.metadata?.owner;
+  const preferredSeries = opportunity.preferredSeries || opportunity.metadata?.preferredSeries || [];
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -125,6 +126,11 @@ function OpportunityCard({
               {owner?.name && (
                 <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">
                   负责人 {owner.name}
+                </span>
+              )}
+              {preferredSeries[0] && (
+                <span className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">
+                  偏好 {preferredSeries.join(' / ')}
                 </span>
               )}
               <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">

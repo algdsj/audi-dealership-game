@@ -1,7 +1,14 @@
+import {
+  CUSTOMER_ARCHETYPE_SERIES_BIAS,
+  CUSTOMER_SERIES_PREFERENCE_WEIGHTS,
+  CUSTOMER_SERIES_SENSITIVITY,
+} from '../config/vehicleStructure.js';
+
 const PURPOSE_BY_SEGMENT = {
   年轻: ['年轻家庭第一台豪华车', '通勤兼顾周末出游', '希望车看起来更有面子'],
   商务: ['商务接待和日常通勤', '公司用车预算审批', '替换现有老车提升形象'],
   家庭: ['家庭换购SUV', '接送孩子和长途出游', '需要兼顾空间与安全感'],
+  新能源: ['希望换一台豪华纯电SUV', '关注智能座舱和补能体验', '想用新能源牌照兼顾品牌感'],
 };
 
 const DECISION_ROLES = [
@@ -32,6 +39,61 @@ const OBJECTION_POOL = [
 
 const pickOne = (items, random) => items[Math.floor(random() * items.length)];
 
+const getSeriesCatalog = carModels => [...new Set((carModels || []).map(model => model.series).filter(Boolean))];
+
+const pickWeightedSeries = ({ weights, availableSeries, random }) => {
+  const entries = Object.entries(weights || {})
+    .filter(([series]) => availableSeries.includes(series))
+    .map(([series, weight]) => [series, Math.max(0, Number(weight) || 0)]);
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  if (total <= 0) return availableSeries[0] || null;
+  let roll = random() * total;
+  for (const [series, weight] of entries) {
+    roll -= weight;
+    if (roll <= 0) return series;
+  }
+  return entries[entries.length - 1]?.[0] || null;
+};
+
+const buildCustomerSeriesPreference = ({ archetype, modelDef, activeRegion, carModels, random }) => {
+  const availableSeries = getSeriesCatalog(carModels);
+  const baseWeights = {
+    ...(CUSTOMER_SERIES_PREFERENCE_WEIGHTS[modelDef.segment] || CUSTOMER_SERIES_PREFERENCE_WEIGHTS.商务),
+  };
+  Object.entries(CUSTOMER_ARCHETYPE_SERIES_BIAS[archetype.id] || {}).forEach(([series, bias]) => {
+    baseWeights[series] = (baseWeights[series] || 0) + bias;
+  });
+  if (activeRegion?.id === 'nev_hot') {
+    baseWeights['Q6L e-tron'] = (baseWeights['Q6L e-tron'] || 0) + 12;
+    baseWeights.Q5L = (baseWeights.Q5L || 0) + 5;
+  }
+
+  const primary = pickWeightedSeries({ weights: baseWeights, availableSeries, random }) || modelDef.series;
+  const secondaryWeights = { ...baseWeights, [primary]: 0 };
+  const secondary = pickWeightedSeries({ weights: secondaryWeights, availableSeries, random });
+  const preferredSeries = [primary, secondary].filter(Boolean);
+  const avoidedSeries = availableSeries
+    .filter(series => !preferredSeries.includes(series))
+    .sort((a, b) => (baseWeights[a] || 0) - (baseWeights[b] || 0))
+    .slice(0, 1);
+  const sensitivity = CUSTOMER_SERIES_SENSITIVITY[primary] || { id: 'balanced', label: '综合体验敏感', closeBonus: 0.02 };
+  const seriesFit = preferredSeries.includes(modelDef.series)
+    ? sensitivity.closeBonus || 0.03
+    : avoidedSeries.includes(modelDef.series)
+      ? -0.06
+      : -0.01;
+
+  return {
+    preferredSeries,
+    avoidedSeries,
+    sensitivity,
+    seriesFit,
+    preferenceReason: preferredSeries.includes(modelDef.series)
+      ? `${modelDef.series} 符合客户的${sensitivity.label}。`
+      : `客户更偏向 ${preferredSeries.join(' / ')}，当前车型需要用现车、价格或权益补强。`,
+  };
+};
+
 const pickWeightedProfileItems = ({ pool, archetypeId, random, count }) => {
   const preferred = pool.filter(item => item.archetypes.includes(archetypeId));
   const rest = pool.filter(item => !item.archetypes.includes(archetypeId));
@@ -48,13 +110,14 @@ export function createCustomerProfile({
   archetype,
   channel,
   modelDef,
-  activeRegion,
+  activeRegion = {},
   currentPrice,
   targetPrice,
   competitorPrice,
   financeIntent,
   tradeInIntent,
   urgency,
+  carModels = [],
   random = Math.random,
 }) {
   const role = pickOne(DECISION_ROLES, random);
@@ -67,6 +130,7 @@ export function createCustomerProfile({
   const competitorPull = Math.max(0, Math.min(0.95, (archetype.priceFocus || 0) * 0.48 + (activeRegion.pricePressure < 0 ? 0.08 : 0) + (channel.id === 'sourcing' ? 0.05 : 0)));
   const trustNeed = Math.max(0, Math.min(0.95, 0.22 + (role.trustNeed || 0) + (channel.id === 'livestream' ? 0.06 : 0) + (archetype.id === 'comparison' ? 0.12 : 0)));
   const patience = Math.max(0.05, Math.min(0.95, 0.38 + (role.patience || 0) - urgency * 0.18 + (archetype.id === 'urgent' ? -0.12 : 0)));
+  const seriesPreference = buildCustomerSeriesPreference({ archetype, modelDef, activeRegion, carModels, random });
 
   const modeFit = focusItems.reduce((acc, item) => {
     Object.entries(item.modeFit || {}).forEach(([mode, value]) => {
@@ -100,6 +164,11 @@ export function createCustomerProfile({
     budgetCeiling,
     focus: focusItems.map(item => item.label),
     objections: objectionItems.map(item => item.label),
+    preferredSeries: seriesPreference.preferredSeries,
+    avoidedSeries: seriesPreference.avoidedSeries,
+    sensitivity: seriesPreference.sensitivity,
+    seriesFit: seriesPreference.seriesFit,
+    preferenceReason: seriesPreference.preferenceReason,
     communicationTips,
     competitorPull,
     trustNeed,

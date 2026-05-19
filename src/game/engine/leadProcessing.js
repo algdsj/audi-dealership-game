@@ -1,5 +1,6 @@
 import { EMPTY_LEAD_CHANNELS, LEAD_CHANNELS } from '../config/marketing.js';
 import { sumLeadChannels } from './leads.js';
+import { buildShowroomStrategySnapshot } from './vehicleStructure.js';
 
 export const processDailyWalkIns = ({
   marketing,
@@ -17,6 +18,7 @@ export const processDailyWalkIns = ({
   streamerAvgSkill,
   streamerLivestreamWalkinBonus = 0,
   inventory,
+  carModels = [],
   facility,
   marketEnvironment,
   activeRegion,
@@ -65,8 +67,9 @@ export const processDailyWalkIns = ({
     }
   }
 
+  const showroomStrategy = buildShowroomStrategySnapshot({ inventory, carModels });
   const showroomModelCount = new Set(inventory.filter(car => car.location === 'showroom').map(car => car.modelId)).size;
-  const baseNaturalWalkIns = Math.floor((showroomModelCount * 0.8 + facility.level * 1.0 + random() * 2) * marketEnvironment.seasonIndex * (activeRegion.demand || 1) * gmEfficiency);
+  const baseNaturalWalkIns = Math.floor((showroomModelCount * 0.8 + showroomStrategy.naturalWalkInBonus + facility.level * 1.0 + random() * 2) * marketEnvironment.seasonIndex * (activeRegion.demand || 1) * gmEfficiency);
   const naturalWalkIns = Math.max(0, Math.floor((baseNaturalWalkIns + activeNaturalBonus) * (1 - competitorPressure + playerPriceBoost)));
   const totalWalkIns = dccWalkIns + naturalWalkIns;
 
@@ -86,10 +89,24 @@ export const processDailyWalkIns = ({
     .join(' / ');
   if (processedSummary) logs.push({ day: absoluteDay, type: 'info', message: `📞【线索跟进】DCC处理 ${processedLeads} 条线索（${processedSummary}），邀约到店 ${dccWalkIns} 批。` });
 
-  const customerSegments = ['年轻', '商务', '家庭'];
+  const customerSegmentWeights = [
+    ['年轻', 1 + (showroomStrategy.segmentBonus.年轻 || 0) * 8],
+    ['商务', 1 + (showroomStrategy.segmentBonus.商务 || 0) * 8],
+    ['家庭', 1 + (showroomStrategy.segmentBonus.家庭 || 0) * 8],
+    ['新能源', 0.35 + (showroomStrategy.segmentBonus.新能源 || 0) * 10],
+  ];
+  const totalSegmentWeight = customerSegmentWeights.reduce((sum, [, weight]) => sum + weight, 0);
+  const pickSegment = () => {
+    let roll = random() * totalSegmentWeight;
+    for (const [segment, weight] of customerSegmentWeights) {
+      roll -= weight;
+      if (roll <= 0) return segment;
+    }
+    return '家庭';
+  };
   const todayWalkInSegments = [];
   for (let index = 0; index < totalWalkIns; index++) {
-    todayWalkInSegments.push(customerSegments[Math.floor(random() * customerSegments.length)]);
+    todayWalkInSegments.push(pickSegment());
   }
   const salesCapacity = Math.max(0, Math.floor(salesCount * 5 * gmEfficiency));
   const handledCustomers = todayWalkInSegments.sort(() => random() - 0.5).slice(0, salesCapacity);

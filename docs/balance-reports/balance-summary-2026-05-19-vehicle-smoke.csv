@@ -1,0 +1,4 @@
+region,difficulty,scenario,strategy,samples,winRate,bankruptcyRate,dismissalRate,avgNetAssets,avgCash,avgLoan,avgCreditUsage,avgMaxCreditUsage,avgMinCash,avgMinTrust,avgMinCsi,avgMaxInventoryAndTransit,avgSales,avgInventory,avgCsi,avgTrust
+"capital","standard","survive6","aggressive",1,1,0,0,16289542.475800004,11671633.075800005,2331697,0.10259258126689703,0.8208948,2383236.1330000013,72,90,30,242,18,95.01999999999948,100
+"capital","standard","survive6","balanced",1,1,0,0,12154648.143800003,8832420.543800004,588874,0.03286526677182081,0.4955271207169104,2506107.5440000007,72,90,30,163,9,93.58000000000024,100
+"capital","standard","survive6","conservative",1,1,0,0,6827470.737600008,5861772.537600008,809817,0.05743314547741559,0.3165,2576497.879600004,60,85.78857142857133,11,61,3,95.44285714285704,100

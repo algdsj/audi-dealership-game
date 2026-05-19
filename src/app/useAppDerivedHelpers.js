@@ -60,6 +60,13 @@ export function useAppDerivedHelpers({
       overdueDraftCount: context.overdueDraftCount ?? (drafts.activeDrafts || []).filter(d => d.status === 'defaulted').length,
       bankReputation: context.bankReputation ?? (drafts.bankReputation ?? 70),
       totalDraftsDefaulted: context.totalDraftsDefaulted ?? (drafts.totalDraftsDefaulted || 0),
+      cashCoverageDays: context.cashCoverageDays ?? Math.floor((context.cash ?? finance.cash) / Math.max(1, getCompanyDailyBurn())),
+      agedInventoryCount: context.agedInventoryCount ?? inventory.filter(car => (car.stockDays || 0) >= 60).length,
+      complaints: context.complaints ?? (csi.complaints || 0),
+      investorTrust: context.investorTrust ?? (investorRelations.trust || 0),
+      excellentMonthCount: context.excellentMonthCount ?? normalized.ratingHistory.filter(item => (item.score || 0) >= 82 || (item.investorScore || 0) >= 82).length,
+      hqRelationship: context.hqRelationship ?? 0,
+      regionRelationship: context.regionRelationship ?? 0,
     };
     return buildFeedbackProgress({
       currentFeedback: normalized,

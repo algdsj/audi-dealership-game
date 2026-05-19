@@ -56,6 +56,7 @@ export const resolveCustomerDeal = ({
       : -Math.min(0.14, ((finalPrice - profile.budgetCeiling) / finalPrice) * 2.4)
     : 0;
   const profileFit = getCustomerProfileModeFit(item, mode);
+  const seriesFit = Number(profile.seriesFit) || 0;
   const trustFit = mode === 'balanced' || mode === 'finance' ? (profile.trustNeed || 0) * 0.04 : 0;
   const competitorPenalty = priceReality.overAllowed ? (profile.competitorPull || 0) * 0.06 : 0;
   const objectionPenalty = (profile.objectionPenalty || 0) * (mode === 'margin' ? 0.55 : mode === 'close' ? 0.35 : 0.2);
@@ -67,6 +68,7 @@ export const resolveCustomerDeal = ({
       + targetFit
       + financeFit
       + profileFit
+      + seriesFit
       + budgetFit
       + trustFit
       + patienceFit
@@ -83,7 +85,7 @@ export const resolveCustomerDeal = ({
       log: { type: 'warning', message: `👤【客户谈判失败】${config.label}未打动${item.customerName}（${item.archetypeName}），客户继续观望或转向竞品。` },
       alert: {
         title: '客户未成交',
-        message: `${config.label}未打动${item.customerName}，本次成交概率约 ${Math.round(closeChance * 100)}%。${profile.objections?.[0] ? `主要异议：${profile.objections[0]}。` : ''}${priceReality.overAllowed ? '成交价明显高于同城报价，除非销售、口碑和金融方案足够强，否则客户会转向竞品。' : '客户继续观望或转向竞品。'}`,
+        message: `${config.label}未打动${item.customerName}，本次成交概率约 ${Math.round(closeChance * 100)}%。${profile.preferenceReason ? `${profile.preferenceReason}` : ''}${profile.objections?.[0] ? `主要异议：${profile.objections[0]}。` : ''}${priceReality.overAllowed ? '成交价明显高于同城报价，除非销售、口碑和金融方案足够强，否则客户会转向竞品。' : '客户继续观望或转向竞品。'}`,
       },
     };
   }
@@ -162,11 +164,11 @@ export const resolveCustomerDeal = ({
     ],
     log: {
       type: 'success',
-      message: `👤【重点客户成交】${config.label}，${item.customerName}购买${item.modelName}，成交价${formatMoney(finalPrice)}，综合毛利${formatMoney(grossProfit)}${isTradeIn ? '，同步收购置换车' : ''}。`,
+      message: `👤【重点客户成交】${config.label}，${item.customerName}购买${item.modelName}，成交价${formatMoney(finalPrice)}，综合毛利${formatMoney(grossProfit)}${profile.sensitivity?.label ? `，客户关注${profile.sensitivity.label}` : ''}${isTradeIn ? '，同步收购置换车' : ''}。`,
     },
     alert: {
       title: '客户成交',
-      message: `${item.customerName} 已购买 ${item.modelName}。\n成交价：${formatMoney(finalPrice)}\n综合毛利：${formatMoney(grossProfit)}${isTradeIn ? '\n同步收购置换车。' : ''}`,
+      message: `${item.customerName} 已购买 ${item.modelName}。\n成交价：${formatMoney(finalPrice)}\n综合毛利：${formatMoney(grossProfit)}${profile.preferenceReason ? `\n车型偏好：${profile.preferenceReason}` : ''}${isTradeIn ? '\n同步收购置换车。' : ''}`,
     },
   };
 };

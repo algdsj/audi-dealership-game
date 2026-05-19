@@ -6,6 +6,7 @@ import {
   SALES_OPPORTUNITY_OWNER_RULES,
   SALES_OPPORTUNITY_TYPES,
 } from '../config/salesOpportunities.js';
+import { CUSTOMER_SERIES_PREFERENCE_WEIGHTS } from '../config/vehicleStructure.js';
 import { getEffectiveSkill, normalizeStaffMember } from './staffing.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -107,6 +108,8 @@ const buildOpportunity = ({
   trust,
   dueDay,
   day,
+  segment = null,
+  preferredSeries = [],
   metadata = {},
 }) => {
   const type = SALES_OPPORTUNITY_TYPES[typeId] || SALES_OPPORTUNITY_TYPES.lead;
@@ -120,6 +123,8 @@ const buildOpportunity = ({
     customerName: customerName || '意向客户',
     modelId: modelId || null,
     modelName: modelName || '',
+    segment,
+    preferredSeries,
     score: Math.round(clamp(score, 0, 100)),
     heat: Math.round(clamp(heat, 0, 100)),
     trust: Math.round(clamp(trust, 0, 100)),
@@ -129,7 +134,7 @@ const buildOpportunity = ({
     suggestedAction: type.description,
     actions: (type.actions || []).map(actionId => SALES_OPPORTUNITY_ACTIONS[actionId]).filter(Boolean),
     owner: metadata.owner || null,
-    metadata: { ...metadata, sourceId },
+    metadata: { ...metadata, sourceId, segment, preferredSeries },
   };
 };
 
@@ -169,6 +174,17 @@ const countMarketingLeads = (marketing = {}) => {
   return Number(marketing.leads) || 0;
 };
 
+const getPreferredSeriesForSegment = segment => Object.entries(CUSTOMER_SERIES_PREFERENCE_WEIGHTS[segment] || {})
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 2)
+  .map(([series]) => series);
+
+const inferOpportunitySeriesPreference = ({ candidate, carModels = [] }) => {
+  const model = carModels.find(item => item.id === candidate.modelId);
+  if (model?.series) return [model.series, ...getPreferredSeriesForSegment(model.segment).filter(series => series !== model.series)].slice(0, 2);
+  return getPreferredSeriesForSegment(candidate.segment || candidate.metadata?.segment);
+};
+
 const hasActiveForSource = (pool, sourceId, typeId) => (
   pool.active.some(item => item.typeId === typeId && item.metadata?.sourceId === sourceId && !['closed', 'discarded', 'expired'].includes(item.status))
 );
@@ -189,6 +205,7 @@ const makeLifecycleCandidates = ({ customerLifecycle, day, tuning }) => {
       heat: SALES_OPPORTUNITY_TYPES.follow_up.baseHeat + 10,
       trust: SALES_OPPORTUNITY_TYPES.follow_up.baseTrust,
       dueDay: item.dueDay || day + 2,
+      segment: item.segment || null,
       metadata: { source: 'customer_lifecycle', recordId: item.recordId },
     }));
 
@@ -206,6 +223,7 @@ const makeLifecycleCandidates = ({ customerLifecycle, day, tuning }) => {
       heat: record.status === 'sold' ? 38 : 46,
       trust: record.status === 'sold' ? 66 : 34,
       dueDay: day + 3,
+      segment: record.segment || null,
       metadata: { source: 'customer_lifecycle', recordId: record.id },
     }));
 
@@ -229,6 +247,7 @@ const makeMarketCandidates = ({ marketing, inventory, staffSummary, day, tuning 
       heat: type.baseHeat + Math.min(18, leadCount / 3),
       trust: type.baseTrust + Math.max(0, staffSummary.averageSkill - 55) * 0.12,
       dueDay: day + type.dueInDays + tuning.expiryPressure,
+      segment: typeId === 'test_drive' ? null : '年轻',
       metadata: { source: 'marketing', leadCount },
     };
   });
@@ -277,6 +296,7 @@ export function evaluateSalesOpportunitiesDaily({
   marketing = {},
   salesOpportunities,
   staff = {},
+  carModels = [],
 }) {
   const tuning = getDifficultyTuning(activeDifficulty);
   const pool = normalizeSalesOpportunityPool(salesOpportunities);
@@ -299,8 +319,11 @@ export function evaluateSalesOpportunitiesDaily({
         day: absoluteDay,
         dueDay: Math.max(absoluteDay, candidate.dueDay || absoluteDay + type.dueInDays),
         score: (candidate.score || type.baseHeat) * (type.scoreWeight || 1) + staffCapacityBonus,
+        segment: candidate.segment || candidate.metadata?.segment || null,
+        preferredSeries: inferOpportunitySeriesPreference({ candidate, carModels }),
         metadata: {
           ...(candidate.metadata || {}),
+          preferredSeries: inferOpportunitySeriesPreference({ candidate, carModels }),
           owner: findOpportunityOwner({ opportunityType: candidate.typeId, staff, workloads }),
         },
       });

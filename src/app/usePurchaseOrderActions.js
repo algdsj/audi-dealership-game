@@ -53,7 +53,11 @@ export function usePurchaseOrderActions({
     setDrafts(result.drafts);
     setMonthlyStats(result.monthlyStats);
     if (manufacturerPolicy && setManufacturerPolicy) {
-      setManufacturerPolicy(recordPurchaseTargetOrder({ manufacturerPolicy, quantity: orderForm.quantity }));
+      setManufacturerPolicy(recordPurchaseTargetOrder({
+        manufacturerPolicy,
+        quantity: orderForm.quantity,
+        modelId: orderForm.model?.id,
+      }));
     }
     appendLedger(result.ledgerItem);
     setPendingOrders(result.pendingOrders);

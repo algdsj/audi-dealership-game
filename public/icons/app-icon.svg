@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="奥迪4S店经营模拟">
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <rect x="88" y="106" width="336" height="230" rx="32" fill="#f8fafc"/>
+  <rect x="116" y="138" width="280" height="58" rx="16" fill="#dbeafe"/>
+  <rect x="126" y="222" width="74" height="74" rx="14" fill="#0ea5e9"/>
+  <rect x="219" y="222" width="74" height="74" rx="14" fill="#10b981"/>
+  <rect x="312" y="222" width="74" height="74" rx="14" fill="#f59e0b"/>
+  <path d="M112 365h288" stroke="#f8fafc" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="176" cy="382" r="28" fill="#38bdf8"/>
+  <circle cx="336" cy="382" r="28" fill="#38bdf8"/>
+  <path d="M168 160h176" stroke="#0f172a" stroke-width="24" stroke-linecap="round"/>
+</svg>

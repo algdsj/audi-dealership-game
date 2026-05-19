@@ -1,0 +1,241 @@
+export const VEHICLE_SERIES_STRATEGY = {
+  A3L: {
+    label: 'A3L',
+    role: '入门豪华',
+    audience: '年轻客群',
+    tags: ['young', 'entry'],
+    marginProfile: 'low',
+    leadConversionBias: 0.08,
+    showroomWeight: 0.72,
+    capitalIntensity: 0.42,
+    positioning: '低单车毛利、高线索转化，适合承接年轻首购和预算敏感客户。',
+    showroomEffect: {
+      naturalWalkInBonus: 0.9,
+      segmentBonus: { 年轻: 0.035 },
+      conversionBonus: 0.015,
+      desc: '拉高年轻客流和预算型线索承接。',
+    },
+  },
+  A5L: {
+    label: 'A5L',
+    role: '年轻个性',
+    audience: '运动形象',
+    tags: ['young', 'showroom_attraction'],
+    marginProfile: 'mid',
+    leadConversionBias: 0.04,
+    showroomWeight: 0.88,
+    capitalIntensity: 0.72,
+    positioning: '提升展厅吸引力，承接年轻个性和运动形象客户。',
+    showroomEffect: {
+      naturalWalkInBonus: 0.7,
+      segmentBonus: { 年轻: 0.045 },
+      conversionBonus: 0.02,
+      desc: '增强运动形象，提升年轻个性客户转化。',
+    },
+  },
+  A6L: {
+    label: 'A6L',
+    role: '商务主力',
+    audience: '商务客户',
+    tags: ['business', 'profit'],
+    marginProfile: 'high',
+    leadConversionBias: 0.01,
+    showroomWeight: 0.95,
+    capitalIntensity: 1.0,
+    positioning: '高资金占用，高品牌和利润贡献，是商务成交的主力车系。',
+    showroomEffect: {
+      naturalWalkInBonus: 0.45,
+      segmentBonus: { 商务: 0.055 },
+      conversionBonus: 0.025,
+      desc: '提升商务客户信任和高端品牌感。',
+    },
+  },
+  Q5L: {
+    label: 'Q5L',
+    role: '家庭SUV',
+    audience: '家庭/置换',
+    tags: ['family', 'tradein'],
+    marginProfile: 'mid_high',
+    leadConversionBias: 0.03,
+    showroomWeight: 0.9,
+    capitalIntensity: 0.88,
+    positioning: '成交稳定，适合家庭换购和置换客户。',
+    showroomEffect: {
+      naturalWalkInBonus: 0.55,
+      segmentBonus: { 家庭: 0.05 },
+      tradeInBonus: 0.035,
+      conversionBonus: 0.025,
+      desc: '增强家庭换购、空间体验和置换成交。',
+    },
+  },
+  'Q6L e-tron': {
+    label: 'Q6L e-tron',
+    role: '新能源',
+    audience: 'EV竞品对抗',
+    tags: ['ev', 'family'],
+    marginProfile: 'mid',
+    leadConversionBias: 0.05,
+    showroomWeight: 0.92,
+    capitalIntensity: 0.62,
+    positioning: '对抗新能源竞品，在新能源强势区和纯电SUV需求中更关键。',
+    showroomEffect: {
+      naturalWalkInBonus: 0.65,
+      segmentBonus: { 新能源: 0.065, 家庭: 0.025 },
+      competitorShield: 0.05,
+      conversionBonus: 0.025,
+      desc: '抵抗新能源竞品分流，承接智能电动客户。',
+    },
+  },
+};
+
+export const VEHICLE_STRUCTURE_THRESHOLDS = {
+  youngLeadPressure: 24,
+  minYoungAvailability: 2,
+  minCoreShowroomSeries: 2,
+  minBusinessAvailability: 1,
+  evAgingDays: 55,
+  highCapitalShare: 0.58,
+  cashPressureDays: 16,
+};
+
+export const CUSTOMER_SERIES_PREFERENCE_WEIGHTS = {
+  年轻: { A3L: 42, A5L: 34, 'Q6L e-tron': 14, Q5L: 7, A6L: 3 },
+  商务: { A6L: 58, Q5L: 17, A5L: 10, 'Q6L e-tron': 9, A3L: 6 },
+  家庭: { Q5L: 48, 'Q6L e-tron': 24, A6L: 14, A3L: 8, A5L: 6 },
+  新能源: { 'Q6L e-tron': 62, Q5L: 16, A5L: 10, A3L: 8, A6L: 4 },
+};
+
+export const CUSTOMER_ARCHETYPE_SERIES_BIAS = {
+  price: { A3L: 14, Q5L: 4 },
+  finance: { A3L: 8, 'Q6L e-tron': 8 },
+  tradein: { Q5L: 12, A6L: 5, 'Q6L e-tron': 5 },
+  comparison: { A5L: 9, 'Q6L e-tron': 8 },
+  urgent: { A3L: 7, Q5L: 7 },
+};
+
+export const CUSTOMER_SERIES_SENSITIVITY = {
+  A3L: { id: 'price', label: '价格/首付敏感', closeBonus: 0.04 },
+  A5L: { id: 'image', label: '颜值和运动感敏感', closeBonus: 0.03 },
+  A6L: { id: 'business', label: '商务形象敏感', closeBonus: 0.04 },
+  Q5L: { id: 'family', label: '空间与置换敏感', closeBonus: 0.04 },
+  'Q6L e-tron': { id: 'ev', label: '智能电动体验敏感', closeBonus: 0.04 },
+};
+
+export const MANUFACTURER_STRUCTURE_TARGETS = [
+  {
+    id: 'a3l_volume',
+    series: 'A3L',
+    label: 'A3L 入门车冲量',
+    desc: '区域希望用入门豪华车型吃到年轻首购和预算型增量。',
+    targetShare: 0.22,
+    minUnits: 2,
+    relationshipDelta: 2,
+    rewardAmount: 9000,
+  },
+  {
+    id: 'a6l_business',
+    series: 'A6L',
+    label: 'A6L 商务主力',
+    desc: '总部和大区都关注商务主力车系不断档，支撑品牌形象和利润。',
+    targetShare: 0.18,
+    minUnits: 2,
+    relationshipDelta: 2,
+    rewardAmount: 11000,
+  },
+  {
+    id: 'q5l_family',
+    series: 'Q5L',
+    label: 'Q5L 家庭 SUV 主推',
+    desc: '家庭 SUV 是稳定成交和置换承接的核心盘。',
+    targetShare: 0.2,
+    minUnits: 2,
+    relationshipDelta: 2,
+    rewardAmount: 10000,
+  },
+  {
+    id: 'q6l_ev',
+    series: 'Q6L e-tron',
+    label: 'Q6L e-tron 新能源渗透率',
+    desc: '新能源强势区域和 EV 竞品压力下，厂家要求经销商保持纯电 SUV 能见度。',
+    targetShare: 0.12,
+    minUnits: 1,
+    relationshipDelta: 3,
+    rewardAmount: 12000,
+  },
+];
+
+export const VEHICLE_SERIES_COMPETITOR_MAP = {
+  A3L: {
+    rivals: ['宝马1系', '奔驰A级'],
+    competitorBrands: ['bmw', 'benz'],
+    pressureSensitivity: 0.75,
+    priceSensitivity: 0.65,
+  },
+  A5L: {
+    rivals: ['宝马3系', '奔驰C级'],
+    competitorBrands: ['bmw', 'benz'],
+    pressureSensitivity: 0.9,
+    priceSensitivity: 0.85,
+  },
+  A6L: {
+    rivals: ['宝马5系', '奔驰E级'],
+    competitorBrands: ['bmw', 'benz'],
+    pressureSensitivity: 0.95,
+    priceSensitivity: 0.9,
+  },
+  Q5L: {
+    rivals: ['宝马X3', '奔驰GLC'],
+    competitorBrands: ['bmw', 'benz', 'ev'],
+    pressureSensitivity: 0.9,
+    priceSensitivity: 0.8,
+  },
+  'Q6L e-tron': {
+    rivals: ['Model Y', '蔚来', '问界', '理想'],
+    competitorBrands: ['ev'],
+    pressureSensitivity: 1.15,
+    priceSensitivity: 1.0,
+  },
+};
+
+export const VEHICLE_SERIES_PRICE_STRATEGIES = {
+  A3L: {
+    id: 'volume',
+    label: '冲量价',
+    desc: '贴近同城均价，优先换线索转化和入门客户成交。',
+    marketRatio: 0.985,
+    msrpRatio: 0.96,
+    minCostRatio: 1.015,
+  },
+  A5L: {
+    id: 'image',
+    label: '形象价',
+    desc: '保持运动形象溢价，避免过早陷入低价比拼。',
+    marketRatio: 1.01,
+    msrpRatio: 0.99,
+    minCostRatio: 1.035,
+  },
+  A6L: {
+    id: 'margin',
+    label: '守利润',
+    desc: '商务客户重视确定性和品牌感，价格不主动打穿毛利。',
+    marketRatio: 1.015,
+    msrpRatio: 1.0,
+    minCostRatio: 1.055,
+  },
+  Q5L: {
+    id: 'tradein',
+    label: '置换权益价',
+    desc: '保留总价空间，把谈判重心放到置换和家庭权益。',
+    marketRatio: 1.0,
+    msrpRatio: 0.985,
+    minCostRatio: 1.04,
+  },
+  'Q6L e-tron': {
+    id: 'ev_compete',
+    label: '抗竞品价',
+    desc: '对齐新能源竞品节奏，避免纯电SUV客户被快速分流。',
+    marketRatio: 0.975,
+    msrpRatio: 0.955,
+    minCostRatio: 1.02,
+  },
+};

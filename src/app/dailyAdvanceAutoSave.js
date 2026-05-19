@@ -1,6 +1,6 @@
 import { CAR_MODELS } from '../game/config/vehicles.js';
 import { buildAutoSaveData, buildAutoSaveGameState } from '../game/state/autoSave.js';
-import { writeSaveSlots } from '../game/state/saveSlots.js';
+import { rotateAutoSaveBackups, writeSaveSlots } from '../game/state/saveSlots.js';
 
 export function writeDailyAutoSave({
   activeMarketSize,
@@ -124,7 +124,7 @@ export function writeDailyAutoSave({
       endingSummary,
       logs,
     });
-    const allSlots = getSaveSlots();
+    const allSlots = rotateAutoSaveBackups(getSaveSlots());
     allSlots.slots.auto = autoSaveData;
     writeSaveSlots(allSlots);
   } catch (_e) {

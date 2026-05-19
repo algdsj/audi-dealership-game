@@ -40,6 +40,18 @@ export function ReportArchivePanel({
                 <div><p className="text-slate-400">返利</p><p className="font-black text-emerald-300">{formatMoney(report.payout || 0)}</p></div>
                 <div><p className="text-slate-400">评分</p><p className="font-black">{Math.round(report.investorScore || 0)}</p></div>
               </div>
+              {report.quarterlyChallenge && (
+                <div className="mt-3 rounded-lg border border-blue-300/20 bg-blue-400/10 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-black text-blue-100">{report.quarterlyChallenge.label}</p>
+                    <span className="text-xs font-black text-blue-100">{report.quarterlyChallenge.progress}%</span>
+                  </div>
+                  <p className="mt-1 text-[10px] font-bold text-blue-100/80">{report.quarterlyChallenge.theme}</p>
+                </div>
+              )}
+              {report.operatingReview?.nextActions?.length > 0 && (
+                <p className="text-xs text-amber-100 mt-3">复盘建议：{report.operatingReview.nextActions[0]}</p>
+              )}
               {report.badges?.length > 0 && <p className="text-xs text-blue-100 mt-3">徽章：{report.badges.map(item => item.name).join('、')}</p>}
             </div>
           ))}

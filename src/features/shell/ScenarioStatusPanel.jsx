@@ -10,6 +10,8 @@ export function ScenarioStatusPanel({
   onDismissTutorial,
   onSelectTab,
 }) {
+  const checklist = activeTutorialStep?.checklist || [];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
       <div className="lg:col-span-2 rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -35,13 +37,28 @@ export function ScenarioStatusPanel({
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs font-black text-amber-700">新手引导</p>
+              <p className="text-xs font-black text-amber-700">
+                {activeTutorialStep.dayLabel || '新手引导'}
+                {typeof activeTutorialStep.progressPercent === 'number' ? ` · ${activeTutorialStep.progressPercent}%` : ''}
+              </p>
               <h3 className="font-black text-slate-900 mt-1">{activeTutorialStep.title}</h3>
               <p className="text-xs text-slate-600 mt-1">{activeTutorialStep.detail}</p>
             </div>
             <button onClick={onDismissTutorial} className="text-xs font-black text-slate-400 hover:text-slate-600">关闭</button>
           </div>
-          <button onClick={() => onSelectTab(activeTutorialStep.tab)} className="mt-3 px-3 py-2 rounded-lg bg-amber-600 text-white text-xs font-black hover:bg-amber-700">前往处理</button>
+          {checklist.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {checklist.slice(0, 3).map(item => (
+                <div key={item.id || item.label} className="flex items-start gap-2 text-[11px] font-bold text-slate-600">
+                  <span className={`mt-0.5 h-3 w-3 rounded-full border ${item.done ? 'border-emerald-400 bg-emerald-300' : 'border-amber-300 bg-white'}`}></span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => onSelectTab(activeTutorialStep.tab)} className="mt-3 px-3 py-2 rounded-lg bg-amber-600 text-white text-xs font-black hover:bg-amber-700">
+            {activeTutorialStep.actionLabel || '前往处理'}
+          </button>
         </div>
       ) : (
         <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">

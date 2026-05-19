@@ -29,6 +29,9 @@ export function CustomerNegotiationTab({
         <div className="space-y-4">
           {pendingDeals.map(item => {
             const profile = item.profile || {};
+            const preferredSeries = item.preferredSeries || profile.preferredSeries || [];
+            const avoidedSeries = item.avoidedSeries || profile.avoidedSeries || [];
+            const sensitivityLabel = item.sensitivity?.label || profile.sensitivity?.label;
             const marginProfit = estimateDealAddons(item.modelId, item.currentPrice).grossProfit;
             const balancedPrice = Math.max(item.targetPrice, Math.round((item.currentPrice + item.targetPrice) / 2 / 1000) * 1000);
             const balancedProfit = estimateDealAddons(item.modelId, balancedPrice).grossProfit;
@@ -44,6 +47,9 @@ export function CustomerNegotiationTab({
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="text-xs font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">{item.channelIcon} {item.channelName}</span>
                         <span className="text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">{item.archetypeName}</span>
+                        {preferredSeries[0] && (
+                          <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">偏好 {preferredSeries.join(' / ')}</span>
+                        )}
                         <span className="text-xs font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 border border-amber-200">D{((item.dueDay - 1) % 30) + 1}前有效</span>
                       </div>
                       <h3 className="text-lg font-black text-slate-900">{item.customerName} · 意向 {item.modelName}</h3>
@@ -90,6 +96,15 @@ export function CustomerNegotiationTab({
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1.5">
+                          {sensitivityLabel && (
+                            <span className="rounded bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700 border border-blue-100">{sensitivityLabel}</span>
+                          )}
+                          {preferredSeries.map(series => (
+                            <span key={`preferred-${series}`} className="rounded bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 border border-cyan-100">偏好{series}</span>
+                          ))}
+                          {avoidedSeries.map(series => (
+                            <span key={`avoided-${series}`} className="rounded bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-500 border border-slate-100">不优先{series}</span>
+                          ))}
                           {(profile.focus || []).map(label => (
                             <span key={label} className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-100">{label}</span>
                           ))}

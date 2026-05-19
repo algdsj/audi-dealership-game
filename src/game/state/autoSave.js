@@ -1,4 +1,5 @@
 import { calculateNetAssets } from '../engine/scenarioEnding.js';
+import { APP_VERSION_INFO } from '../config/appVersion.js';
 
 export const buildAutoSaveGameState = ({
   dismissedByInvestor,
@@ -74,7 +75,7 @@ export const buildAutoSaveData = ({
   endingSummary,
   logs,
 }) => ({
-  version: 1,
+  version: APP_VERSION_INFO.saveSchemaVersion,
   savedAt,
   slotName: '自动存档',
   gameState,

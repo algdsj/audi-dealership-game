@@ -12,12 +12,14 @@ const keyLazyChunkNames = [
   'InboxModal',
   'SaveLoadModals',
   'OrderConfigModal',
+  'BusinessIntelligenceTab',
   'FinancialReportsTab',
   'StaffManagementTab',
   'OperatingEventsTab',
   'CustomerCenterTab',
   'SalesOpportunityTab',
   'MarketTab',
+  'SettingsTab',
 ];
 
 const fetchText = async (url) => {
@@ -74,6 +76,8 @@ async function testServedPage() {
         || contentType.includes('css')
         || contentType.includes('image')
         || contentType.includes('svg')
+        || contentType.includes('manifest')
+        || contentType.includes('json')
         || contentType.includes('html'),
       `${assetPath} has unexpected content-type: ${contentType}`,
     );
@@ -87,6 +91,8 @@ async function testBuiltBundleShape() {
   const entryChunk = await findEntryChunk();
 
   assert.match(indexHtml, /type="module"/, 'dist index does not load a module script');
+  assert.match(indexHtml, /manifest\.webmanifest/, 'dist index does not reference PWA manifest');
+  assert.match(indexHtml, /theme-color/, 'dist index does not define theme-color');
   assert.ok(
     entryChunk.size < MAX_ENTRY_CHUNK_BYTES,
     `entry chunk ${path.basename(entryChunk.file)} is ${(entryChunk.size / 1024).toFixed(1)}KB, expected < 500KB`,
@@ -100,7 +106,17 @@ async function testBuiltBundleShape() {
   }
 }
 
+async function testPwaArtifacts() {
+  const manifest = JSON.parse(await readFile(path.join(DIST_DIR, 'manifest.webmanifest'), 'utf8'));
+  assert.equal(manifest.display, 'standalone', 'PWA manifest should use standalone display');
+  assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 1, 'PWA manifest icons missing');
+  const serviceWorker = await readFile(path.join(DIST_DIR, 'sw.js'), 'utf8');
+  assert.match(serviceWorker, /CACHE_VERSION/, 'service worker cache version missing');
+  await stat(path.join(DIST_DIR, 'icons', 'app-icon.svg'));
+}
+
 await testServedPage();
 await testBuiltBundleShape();
+await testPwaArtifacts();
 
 console.log(`ok - UI smoke passed for ${ROOT_URL}`);

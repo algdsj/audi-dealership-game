@@ -112,7 +112,7 @@ export function LoadSlotsModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">📂 选择存档读取</h2>
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-          {loadEntries.map(({ slotId, slot, isAuto }) => {
+          {loadEntries.map(({ slotId, slot, isAuto, isAutoBackup }) => {
             const isRenaming = renameSlot === slotId;
             const isManualSlot = /^slot\d+$/.test(slotId);
             return (
@@ -130,7 +130,7 @@ export function LoadSlotsModal({
                     ) : (
                       <>
                         <p className="font-bold text-sm truncate">
-                          {slot ? `${isAuto ? '🔄 ' : ''}${getSaveSlotLabel(slotId, slot, isAuto)}` : (isAuto ? '🔄 自动存档：空' : isManualSlot ? `空槽位 ${slotId.replace('slot', '')}` : `${slotId}：无效数据`)}
+                          {slot ? `${isAuto ? '🔄 ' : isAutoBackup ? '🕘 ' : ''}${getSaveSlotLabel(slotId, slot, isAuto)}` : (isAuto ? '🔄 自动存档：空' : isAutoBackup ? `${getSaveSlotLabel(slotId, slot)}：空` : isManualSlot ? `空槽位 ${slotId.replace('slot', '')}` : `${slotId}：无效数据`)}
                         </p>
                         {slot ? (
                           <p className="text-xs text-slate-400 truncate">{slot.savedAt || '未知时间'} · M{Math.floor(((slot.day || 1) - 1) / 30) + 1} D{(((slot.day || 1) - 1) % 30) + 1}</p>
@@ -141,7 +141,7 @@ export function LoadSlotsModal({
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {slot && !isAuto && !isRenaming && (
+                    {slot && !isAuto && !isAutoBackup && !isRenaming && (
                       <>
                         <button onClick={() => { setRenameSlot(slotId); setRenameValue(getSaveSlotLabel(slotId, slot, isAuto)); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200" title="重命名">✏️</button>
                         <button onClick={() => onDeleteSlot(slotId)} className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200" title="删除">🗑️</button>

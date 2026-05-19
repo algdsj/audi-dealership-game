@@ -1,9 +1,12 @@
+import { getSeriesCompetitorImpact } from './vehicleStructure.js';
+
 export const updateDailyMarketPrices = ({
   marketPrices,
   carModels,
   inventory,
   marketEnvironment,
   activeRegion,
+  competitors = {},
   getDynamicMsrp,
   random = Math.random,
 }) => {
@@ -13,11 +16,13 @@ export const updateDailyMarketPrices = ({
     const dynamicMsrp = getDynamicMsrp(model.id);
     const myCars = inventory.filter(car => car.modelId === model.id);
     const competitorAffectsModel = marketEnvironment.competitorEvent.affectedSegments.includes(model.segment);
+    const seriesCompetitorImpact = getSeriesCompetitorImpact({ modelDef: model, marketEnvironment, competitors });
     const dailyFlux = (random() - 0.48) * 0.006;
     const environmentDrift = (
       (marketEnvironment.seasonIndex - 1) * 0.015
       + marketEnvironment.supplyChain.priceDrift
-      + (competitorAffectsModel ? marketEnvironment.competitorEvent.priceDrift : 0)
+      + (competitorAffectsModel ? marketEnvironment.competitorEvent.priceDrift * 0.35 : 0)
+      + seriesCompetitorImpact.priceDrift
       + (activeRegion.pricePressure || 0) * 0.08
     );
 

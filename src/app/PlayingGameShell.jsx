@@ -19,6 +19,7 @@ const CustomerNegotiationTab = lazy(() => import('../features/customer/CustomerN
 const CustomerCenterTab = lazy(() => import('../features/customer/CustomerCenterTab.jsx').then(module => ({ default: module.CustomerCenterTab })));
 const SalesOpportunityTab = lazy(() => import('../features/customer/SalesOpportunityTab.jsx').then(module => ({ default: module.SalesOpportunityTab })));
 const OperatingEventsTab = lazy(() => import('../features/events/OperatingEventsTab.jsx').then(module => ({ default: module.OperatingEventsTab })));
+const BusinessIntelligenceTab = lazy(() => import('../features/finance/BusinessIntelligenceTab.jsx').then(module => ({ default: module.BusinessIntelligenceTab })));
 const FinancialReportsTab = lazy(() => import('../features/finance/FinancialReportsTab.jsx').then(module => ({ default: module.FinancialReportsTab })));
 const FacilityUpgradeTab = lazy(() => import('../features/facility/FacilityUpgradeTab.jsx').then(module => ({ default: module.FacilityUpgradeTab })));
 const StaffManagementTab = lazy(() => import('../features/staff/StaffManagementTab.jsx').then(module => ({ default: module.StaffManagementTab })));
@@ -28,6 +29,7 @@ const DerivativeConfigTab = lazy(() => import('../features/derivative/Derivative
 const CsiTab = lazy(() => import('../features/csi/CsiTab.jsx').then(module => ({ default: module.CsiTab })));
 const MarketTab = lazy(() => import('../features/market/MarketTab.jsx').then(module => ({ default: module.MarketTab })));
 const RebateTab = lazy(() => import('../features/rebate/RebateTab.jsx').then(module => ({ default: module.RebateTab })));
+const SettingsTab = lazy(() => import('../features/settings/SettingsTab.jsx').then(module => ({ default: module.SettingsTab })));
 
 function TabLoadingFallback() {
   return (
@@ -212,6 +214,7 @@ export function PlayingGameShell({ context: c }) {
                     formatMoney={c.formatMoney}
                     getDynamicRebate={c.getDynamicRebate}
                     getDynamicMsrp={c.getDynamicMsrp}
+                    onApplySeriesPriceStrategy={c.handleApplySeriesPriceStrategy}
                     onAutoShowroom={c.handleAutoShowroom}
                     onApplySubsidy={c.handleApplySubsidy}
                     onMoveCar={c.handleMoveCar}
@@ -296,6 +299,14 @@ export function PlayingGameShell({ context: c }) {
                     onOpenInbox={c.openInboxForDay}
                     onResolveEvent={c.handleResolveOperatingEvent}
                     operatingEvents={c.operatingEvents}
+                  />
+                )}
+
+                {c.activeTab === 'bi' && (
+                  <BusinessIntelligenceTab
+                    businessIntelligence={c.businessIntelligence}
+                    formatMoney={c.formatMoney}
+                    onSelectTab={c.setActiveTab}
                   />
                 )}
 
@@ -414,6 +425,7 @@ export function PlayingGameShell({ context: c }) {
                   <RebateTab
                     aiAdvice={c.aiAdvice}
                     isGeneratingAdvice={c.isGeneratingAdvice}
+                    manufacturerInteraction={c.manufacturerInteraction}
                     manufacturerPolicy={c.manufacturerPolicy}
                     monthlyStats={c.monthlyStats}
                     targetProgress={c.targetProgress}
@@ -423,6 +435,21 @@ export function PlayingGameShell({ context: c }) {
                     csi={c.csi}
                     formatMoney={c.formatMoney}
                     onAskAIConsultant={c.handleAskAIConsultant}
+                    onManufacturerResourceRequest={c.handleManufacturerResourceRequest}
+                  />
+                )}
+
+                {c.activeTab === 'settings' && (
+                  <SettingsTab
+                    appInfo={c.settings.appInfo}
+                    pwaStatus={c.settings.pwaStatus}
+                    runtimeMode={c.settings.runtimeMode}
+                    runtimeEnvironment={c.settings.runtimeEnvironment}
+                    saveSlotSummary={c.settings.getSaveSlotSummary()}
+                    onExportSave={c.settings.exportCurrentSave}
+                    onImportSaveFile={c.settings.importSaveFile}
+                    onInstallApp={c.settings.installApp}
+                    onResetLocalData={c.settings.resetLocalData}
                   />
                 )}
                 </Suspense>

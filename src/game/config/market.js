@@ -8,10 +8,10 @@ export const SEASON_MARKET_FACTORS = [
 ];
 
 export const COMPETITOR_EVENTS = [
-  { name: '竞品新车上市', desc: '同级竞品集中发布新款，年轻客群被分流。', affectedSegments: ['年轻'], priceDrift: -0.012, demandImpact: -0.08 },
-  { name: '豪华品牌价格战', desc: '竞品终端折扣扩大，商务客群对价格更敏感。', affectedSegments: ['商务'], priceDrift: -0.018, demandImpact: -0.06 },
-  { name: '新能源SUV热销', desc: '家庭客群关注新能源SUV，Q5L承压。', affectedSegments: ['家庭'], priceDrift: -0.014, demandImpact: -0.07 },
-  { name: '竞品缺货', desc: '主要竞品交付周期拉长，奥迪门店截流机会增加。', affectedSegments: ['年轻', '商务', '家庭'], priceDrift: 0.008, demandImpact: 0.06 },
+  { name: '竞品新车上市', desc: '同级竞品集中发布新款，年轻客群被分流。', affectedSegments: ['年轻'], affectedSeries: ['A3L', 'A5L'], priceDrift: -0.012, demandImpact: -0.08 },
+  { name: '豪华品牌价格战', desc: '竞品终端折扣扩大，商务客群对价格更敏感。', affectedSegments: ['商务'], affectedSeries: ['A6L'], priceDrift: -0.018, demandImpact: -0.06 },
+  { name: '新能源SUV热销', desc: '家庭与新能源客群关注纯电SUV，Q5L和Q6 e-tron同时面对强竞品比价。', affectedSegments: ['家庭', '新能源'], affectedSeries: ['Q5L', 'Q6L e-tron'], priceDrift: -0.014, demandImpact: -0.07 },
+  { name: '竞品缺货', desc: '主要竞品交付周期拉长，奥迪门店截流机会增加。', affectedSegments: ['年轻', '商务', '家庭', '新能源'], affectedSeries: ['A3L', 'A5L', 'A6L', 'Q5L', 'Q6L e-tron'], priceDrift: 0.008, demandImpact: 0.06 },
 ];
 
 export const SUPPLY_CHAIN_EVENTS = [
@@ -25,7 +25,7 @@ export const DEALER_REGIONS = [
   { id: 'low_comp', name: '低竞争三四线', marketSizeId: 'small', desc: '客流少、价格稳、人才少，库存压力低。', demand: 0.84, pricePressure: 0.014, leadCost: 0.94, turnover: 0.76, credit: 0.86, competitorChance: 0.42, csiPressure: 0, inventoryPressure: 0.88, staffSupply: 0.82 },
   { id: 'capital', name: '中竞争省会', marketSizeId: 'medium', desc: '客流正常、价格有波动，竞品动作频繁。', demand: 1.0, pricePressure: 0, leadCost: 1.0, turnover: 1.0, credit: 1.0, competitorChance: 0.6, csiPressure: 0, inventoryPressure: 1.0, staffSupply: 1.0 },
   { id: 'tier1', name: '高竞争一线', marketSizeId: 'large', desc: '客流高但价格战严重，员工容易被挖，CSI压力高。', demand: 1.24, pricePressure: -0.026, leadCost: 1.12, turnover: 1.22, credit: 1.22, competitorChance: 0.72, csiPressure: 0.16, inventoryPressure: 1.08, staffSupply: 1.18 },
-  { id: 'nev_hot', name: '新能源强势区', marketSizeId: 'medium', desc: '燃油豪华车承压，Q5/A6转化更难，但置换机会多。', demand: 1.0, pricePressure: -0.018, leadCost: 1.04, turnover: 1.04, credit: 1.04, competitorChance: 0.68, csiPressure: 0.06, inventoryPressure: 1.0, staffSupply: 1.04, segmentPressure: ['家庭', '商务'], segmentDemandImpact: -0.035, tradeInBoost: 0.26 },
+  { id: 'nev_hot', name: '新能源强势区', marketSizeId: 'medium', desc: '燃油豪华车承压，Q5/A6转化更难，但置换和纯电SUV机会更多。', demand: 1.0, pricePressure: -0.018, leadCost: 1.04, turnover: 1.04, credit: 1.04, competitorChance: 0.68, csiPressure: 0.06, inventoryPressure: 1.0, staffSupply: 1.04, segmentPressure: ['家庭', '商务'], segmentDemandImpact: -0.035, tradeInBoost: 0.26 },
 ];
 
 export const MARKET_SIZE_OPTIONS = [
@@ -103,6 +103,7 @@ export const CUSTOMER_LOSS_INTEL_CONFIG = {
     年轻: { bmw: 8, ev: 7, benz: 3 },
     商务: { benz: 8, bmw: 6, ev: 2 },
     家庭: { ev: 8, benz: 5, bmw: 4 },
+    新能源: { ev: 10, bmw: 4, benz: 3 },
   },
   objectionBrandWeights: {
     '竞品/同城报价更低': { bmw: 4, benz: 4, ev: 3 },

@@ -147,3 +147,8 @@ export const traitMultiplier = (type, members, key, fallback = 1) => members.red
   (mult, member) => mult * getTraits(type, member).reduce((innerMult, trait) => innerMult * (trait[key] || fallback), 1),
   1,
 );
+
+export const getSeriesTraitBonus = ({ type, members = [], series, key = 'seriesSalesBonus' }) => members.reduce(
+  (sum, member) => sum + getTraits(type, member).reduce((innerSum, trait) => innerSum + (trait[key]?.[series] || 0), 0),
+  0,
+);

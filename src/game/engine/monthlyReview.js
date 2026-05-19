@@ -1,4 +1,5 @@
 import { buildLossDrivers, getRatingMeta } from './feedback.js';
+import { buildOperatingReviewReport } from './operatingReviewReport.js';
 
 const defaultFormatMoney = (amount) => `¥${Math.round(amount || 0).toLocaleString()}`;
 
@@ -61,6 +62,12 @@ export const buildMonthlyFeedbackReport = ({
   settlementLoan,
   settlementCreditLimit,
   stockList = [],
+  finance = {},
+  financeSnapshot = {},
+  csi = {},
+  manufacturerPolicy = {},
+  feedback = {},
+  competitors = {},
   formatMoney = defaultFormatMoney,
 }) => {
   const achieveRate = monthStats.target > 0 ? monthStats.sales / monthStats.target : 0;
@@ -86,6 +93,19 @@ export const buildMonthlyFeedbackReport = ({
     settlementLoan <= settlementCreditLimit * 0.55 ? { id: `m${monthNo}_cash`, name: '现金安全', tone: 'slate', desc: `负债率控制在${Math.round(debtRatio * 100)}%。` } : null,
   ].filter(Boolean);
   const lossDrivers = buildLossDrivers(monthStats, investorReview.monthNetProfit);
+  const operatingReview = buildOperatingReviewReport({
+    month: monthNo,
+    monthlyStats: monthStats,
+    finance,
+    financeSnapshot,
+    inventory: stockList,
+    csi: { score: csiScore, ...csi },
+    manufacturerPolicy,
+    investorReview,
+    feedback,
+    competitors,
+    formatMoney,
+  });
   const headline = `${rating.grade}级${rating.label}：销量${monthStats.sales}/${monthStats.target}台，净利润${formatMoney(investorReview.monthNetProfit)}，返利到账${formatMoney(finalPayout)}。`;
   return {
     month: monthNo,
@@ -96,6 +116,8 @@ export const buildMonthlyFeedbackReport = ({
     headline,
     badges,
     lossDrivers,
+    operatingReview,
+    quarterlyChallenge: operatingReview.challenge,
     achieveRate,
     inviteRate,
     convertRate,

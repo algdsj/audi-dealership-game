@@ -1,4 +1,5 @@
 import { EMPTY_LEAD_CHANNELS } from '../config/marketing.js';
+import { createInitialManufacturerInteraction } from '../engine/manufacturerNegotiation.js';
 import { createMonthlyPurchaseTarget } from '../engine/manufacturerPurchaseTargets.js';
 import { normalizeManufacturerRoles } from '../engine/manufacturerRoles.js';
 import { createInitialStoryState } from '../engine/storyEventEngine.js';
@@ -85,6 +86,7 @@ export const createInitialManufacturerPolicy = () => ({
   purchaseTarget: createMonthlyPurchaseTarget({ month: 1, salesTarget: 15, activeDifficulty: 'standard' }),
   commitments: { active: [], history: [] },
   roles: normalizeManufacturerRoles(),
+  interaction: createInitialManufacturerInteraction(),
 });
 
 export const createInitialMarketing = () => ({
@@ -134,6 +136,7 @@ export const createInitialMonthlyStats = () => ({
   financeCost: 0,
   marketingCost: 0,
   storageCost: 0,
+  manufacturerSupportIncome: 0,
   realRevenue: 0,
   realCogs: 0,
   realRebate: 0,

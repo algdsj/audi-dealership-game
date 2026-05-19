@@ -1,0 +1,26 @@
+{
+  "name": "奥迪 4S 店经营模拟",
+  "short_name": "4S经营模拟",
+  "description": "一款围绕现金流、库存、厂家、投资人和客户满意度的 4S 店经营模拟游戏。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "categories": ["games", "business", "simulation"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

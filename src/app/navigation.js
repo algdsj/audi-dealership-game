@@ -26,10 +26,11 @@ export const MODULE_GROUPS = [
   {
     id: 'profit',
     label: '利润中心',
-    desc: '财务、返利、汇票',
+    desc: 'BI、财务、返利、汇票',
     tabs: [
+      { id: 'bi', label: '经营BI' },
       { id: 'finance', label: '总经理办公室' },
-      { id: 'reports', label: '财务' },
+      { id: 'reports', label: '财务报表' },
       { id: 'rebate', label: '返利' },
       { id: 'draft', label: '汇票' },
     ],
@@ -60,6 +61,14 @@ export const MODULE_GROUPS = [
       { id: 'usedcar', label: '二手车' },
       { id: 'aftersales', label: '售后服务' },
       { id: 'derivConfig', label: '金融衍生' },
+    ],
+  },
+  {
+    id: 'system',
+    label: '系统',
+    desc: '设置、版本、存档',
+    tabs: [
+      { id: 'settings', label: '系统设置' },
     ],
   },
 ];

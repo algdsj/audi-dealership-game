@@ -1,4 +1,5 @@
 import React from 'react';
+import { VEHICLE_SERIES_STRATEGY } from '../../game/config/vehicleStructure.js';
 
 function getPaymentMethodLabel(paymentMethod) {
   if (paymentMethod === 'cash') return '现金采购';
@@ -23,6 +24,10 @@ export function OrderTab({
     ? Math.min(160, Math.round((purchaseTarget.purchasedUnits / purchaseTarget.targetUnits) * 100))
     : 0;
   const extraUnits = Math.max(0, (purchaseTarget.purchasedUnits || 0) - (purchaseTarget.targetUnits || 0));
+  const structureItems = purchaseTarget.structure?.items || [];
+  const structureGapItems = structureItems.filter(item => (item.purchasedUnits || 0) < (item.targetUnits || 0));
+  const seriesList = [...new Set(carModels.map(model => model.series).filter(Boolean))]
+    .sort((a, b) => (VEHICLE_SERIES_STRATEGY[b]?.showroomWeight || 0) - (VEHICLE_SERIES_STRATEGY[a]?.showroomWeight || 0));
 
   return (
     <div>
@@ -59,6 +64,26 @@ export function OrderTab({
         <p className="mt-2 text-[10px] font-bold text-indigo-700">
           超采奖励可能是现金奖励、市场共投或库存融资支持函；多采会换支持，也会带来库容和资金压力。
         </p>
+        {structureItems.length > 0 && (
+          <div className="mt-3 rounded-lg border border-white/70 bg-white px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-black text-indigo-500">车型结构任务预警</p>
+              <span className="text-[10px] font-black text-indigo-700">
+                {structureItems.length - structureGapItems.length}/{structureItems.length}
+              </span>
+            </div>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+              {structureItems.map(item => {
+                const gap = Math.max(0, (item.targetUnits || 0) - (item.purchasedUnits || 0));
+                return (
+                  <div key={item.id} className={(gap > 0 ? 'border-amber-100 bg-amber-50 text-amber-800' : 'border-emerald-100 bg-emerald-50 text-emerald-800') + ' rounded border px-2 py-1.5 text-[10px] font-bold'}>
+                    {item.label}：{item.purchasedUnits || 0}/{item.targetUnits || 0}{gap > 0 ? ` · 还差${gap}台` : ' · 已达成'}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {activeCommitments.length > 0 && (
           <div className="mt-3 rounded-lg border border-white/70 bg-white px-3 py-2">
             <p className="text-[10px] font-black text-indigo-500">厂家承诺</p>
@@ -95,14 +120,18 @@ export function OrderTab({
       )}
 
       <div className="space-y-6">
-        {['A5', 'A6', 'Q5'].map(series => {
+        {seriesList.map(series => {
           const seriesModels = carModels.filter(model => model.series === series);
+          if (seriesModels.length === 0) return null;
 
           return (
             <div key={series} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
               <div className="bg-slate-100 px-5 py-3 border-b border-slate-200 flex items-center gap-2">
                 <span className="font-black text-xl text-slate-800">{series} 车系</span>
                 <span className="text-xs px-2 py-1 bg-slate-200 rounded-full text-slate-600">主打: {seriesModels[0].segment}群体</span>
+                {VEHICLE_SERIES_STRATEGY[series]?.role && (
+                  <span className="text-xs px-2 py-1 bg-blue-100 rounded-full text-blue-700">{VEHICLE_SERIES_STRATEGY[series].role}</span>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                 {seriesModels.map(model => (

@@ -20,4 +20,10 @@ export const ACHIEVEMENTS = [
   { id: 'draft_master', name: '票据高手', desc: '同时管理5张以上汇票且无逾期。', check: ctx => ctx.activeDraftCount >= 5 && ctx.overdueDraftCount === 0 },
   { id: 'credit_broken', name: '信用警戒线', desc: '银行信用低于30。', check: ctx => ctx.bankReputation < 30 },
   { id: 'credit_recover', name: '信用修复', desc: '经历汇票违约后银行信用恢复到60以上。', check: ctx => ctx.totalDraftsDefaulted > 0 && ctx.bankReputation >= 60 },
+  { id: 'regional_star_operator', name: '区域明星店操盘手', desc: '拿到3次以上A/S月评且总部、大区关系均保持70以上。', check: ctx => ctx.excellentMonthCount >= 3 && ctx.hqRelationship >= 70 && ctx.regionRelationship >= 70 },
+  { id: 'manufacturer_blacklist', name: '厂家黑名单', desc: '厂家总部关系跌破35，进入严重合规风险区。', check: ctx => ctx.hqRelationship > 0 && ctx.hqRelationship < 35 },
+  { id: 'cashflow_master', name: '现金流大师', desc: '现金覆盖超过60天且当月净利润为正。', check: ctx => ctx.cashCoverageDays >= 60 && (ctx.lastReport?.netProfit || 0) > 0 },
+  { id: 'inventory_bomb', name: '压库爆雷', desc: '长库龄库存达到5台且现金覆盖低于15天。', check: ctx => ctx.agedInventoryCount >= 5 && ctx.cashCoverageDays < 15 },
+  { id: 'csi_benchmark_store', name: 'CSI标杆店', desc: 'CSI达到96分且本月无投诉。', check: ctx => ctx.csiScore >= 96 && ctx.complaints === 0 },
+  { id: 'trusted_by_investor', name: '投资人最信任GM', desc: '投资人信任度达到90且最近月评为优秀。', check: ctx => ctx.investorTrust >= 90 && (ctx.lastInvestorScore || 0) >= 86 },
 ];

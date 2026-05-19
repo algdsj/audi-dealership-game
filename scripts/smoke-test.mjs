@@ -1,17 +1,33 @@
 import assert from 'node:assert/strict';
-import { CAR_MODELS } from '../src/game/config/vehicles.js';
+import { CAR_MODELS, INITIAL_MARKET_PRICES } from '../src/game/config/vehicles.js';
 import { STAFF_ROLE_META, STAFF_TRAITS } from '../src/game/config/staff.js';
+import { ONBOARDING_TRAINING_DAYS } from '../src/game/config/onboardingTraining.js';
 import { addMonthsToGameDate } from '../src/game/engine/gameDate.js';
+import { buildBusinessIntelligenceSnapshot } from '../src/game/engine/businessIntelligence.js';
+import {
+  buildShowroomStrategySnapshot,
+  buildVehicleStructureSnapshot,
+  getSeriesCompetitorImpact,
+} from '../src/game/engine/vehicleStructure.js';
 import { buildFinanceSnapshot } from '../src/game/engine/financeSnapshot.js';
+import {
+  buildManufacturerInteractionSnapshot,
+  resolveManufacturerResourceRequest,
+  settleManufacturerComplianceAudit,
+} from '../src/game/engine/manufacturerNegotiation.js';
+import { buildOperatingReviewReport } from '../src/game/engine/operatingReviewReport.js';
+import { evaluateOnboardingTraining } from '../src/game/engine/onboardingTraining.js';
 import { evaluateStaffStoryMoments, mergeStaffStoryMemoryPatch } from '../src/game/engine/staffStoryEngine.js';
 import { createInitialStoryState, evaluateStoryEvents } from '../src/game/engine/storyEventEngine.js';
 import { resolveStoryInboxAction } from '../src/game/engine/storyActions.js';
-import { createStaffMember, normalizeStaffMember } from '../src/game/engine/staffing.js';
+import { createStaffMember, getSeriesTraitBonus, normalizeStaffMember } from '../src/game/engine/staffing.js';
 import { buildStoreBlueprintViewModel } from '../src/features/store/storeBlueprintViewModel.js';
 import { buildStoreOverviewViewModel } from '../src/features/store/storeOverviewViewModel.js';
 import { buildMessageFeed, getInboxType } from '../src/game/viewModels/messageFeed.js';
 import { buildStoryPressureSummary, getStoryInboxDetails } from '../src/game/viewModels/storyInbox.js';
+import { APP_VERSION_INFO } from '../src/game/config/appVersion.js';
 import {
+  applySeriesPriceStrategy,
   autoArrangeShowroom,
   commitModelInventoryPrice,
   moveInventoryCar,
@@ -79,9 +95,26 @@ import {
   createInitialUsedCarShowroom,
 } from '../src/game/state/initialState.js';
 import { buildManualSaveData, normalizeLoadedSaveData } from '../src/game/state/saveData.js';
+import { buildSaveExportPayload, normalizeImportedSavePayload } from '../src/game/state/saveImportExport.js';
+import {
+  getLoadSlotEntries,
+  readSaveSlots,
+  rotateAutoSaveBackups,
+  writeSaveSlots,
+  SAVE_SLOTS_KEY,
+} from '../src/game/state/saveSlots.js';
 
 const formatMoney = amount => `Y${Math.round(amount).toLocaleString()}`;
 const fixedRandom = value => () => value;
+
+const createMemoryStorage = () => {
+  const store = new Map();
+  return {
+    getItem: key => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, String(value)),
+    removeItem: key => store.delete(key),
+  };
+};
 
 function test(name, fn) {
   try {
@@ -151,13 +184,175 @@ test('save data normalizes legacy fields without dropping core state', () => {
   assert.deepEqual(loaded.customerLifecycle, { records: [], followUps: [] });
   assert.deepEqual(loaded.salesOpportunities, { active: [], history: [] });
   assert.deepEqual(loaded.operatingEvents, { pending: [], resolved: [] });
+  assert.deepEqual(loaded.tutorial.visitedTabs, []);
   assert.ok(loaded.competitors.stores.every(store => typeof store.intelConfidence === 'number'));
   assert.equal(typeof loaded.manufacturerPolicy.purchaseTarget.targetUnits, 'number');
   assert.deepEqual(loaded.manufacturerPolicy.commitments, { active: [], history: [] });
   assert.equal(typeof loaded.manufacturerPolicy.roles.hq.relationship, 'number');
   assert.equal(typeof loaded.manufacturerPolicy.roles.region.relationship, 'number');
+  assert.deepEqual(loaded.manufacturerPolicy.interaction.resourceHistory, []);
+  assert.equal(typeof loaded.manufacturerPolicy.interaction.audit.riskScore, 'number');
   assert.equal(loaded.storyState.version, createInitialStoryState().version);
   assert.deepEqual(loaded.staffStoryMemory, {});
+});
+
+test('save import/export payload uses current normalize path', () => {
+  const legacySave = {
+    savedAt: '2026-05-12 08:00:00',
+    gameState: 'setup',
+    day: 7,
+    dealerRegionId: 'capital',
+    investorProfileId: 'roi_first',
+    marketing: { budget: 2800 },
+    finance: { cash: 88888 },
+    staff: { dcc: { members: [], salary: 150 }, sales: { members: [], salary: 250 } },
+  };
+  const payload = buildSaveExportPayload({ saveData: legacySave, exportedAt: '2026-05-18T00:00:00.000Z' });
+  const loaded = normalizeImportedSavePayload(payload);
+
+  assert.equal(payload.format, 'audi-dealership-save-json');
+  assert.equal(payload.saveSchemaVersion, APP_VERSION_INFO.saveSchemaVersion);
+  assert.equal(loaded.gameState, 'playing');
+  assert.equal(loaded.day, 7);
+  assert.equal(loaded.finance.cash, 88888);
+  assert.equal(loaded.marketing.leadPurchaseBudget, 2800);
+  assert.equal(loaded.staff.service.members.length, 1);
+});
+
+test('auto save rotation keeps the latest three backups without changing save slot key', () => {
+  const storage = createMemoryStorage();
+  let allSlots = readSaveSlots(storage);
+
+  for (let day = 1; day <= 5; day += 1) {
+    allSlots = rotateAutoSaveBackups(allSlots);
+    allSlots.slots.auto = {
+      version: APP_VERSION_INFO.saveSchemaVersion,
+      slotName: '自动存档',
+      savedAt: `2026-05-${10 + day} 00:00:00 (自动)`,
+      gameState: 'playing',
+      day,
+      finance: { cash: 100000 + day },
+    };
+  }
+
+  writeSaveSlots(allSlots, storage);
+  const persisted = readSaveSlots(storage);
+  const rawPersisted = JSON.parse(storage.getItem(SAVE_SLOTS_KEY));
+  const entries = getLoadSlotEntries(persisted);
+
+  assert.equal(storage.getItem(SAVE_SLOTS_KEY) !== null, true);
+  assert.ok(rawPersisted.slots.auto);
+  assert.equal(persisted.autoBackups.length, 3);
+  assert.deepEqual(persisted.autoBackups.map(slot => slot.day), [4, 3, 2]);
+  assert.equal(entries.find(entry => entry.slotId === 'auto_backup_1').slot.day, 4);
+  assert.equal(entries.filter(entry => entry.isAutoBackup).length, 3);
+});
+
+test('vehicle catalog has five series with three trims each and market prices', () => {
+  const expectedSeries = ['A3L', 'A5L', 'A6L', 'Q5L', 'Q6L e-tron'];
+  const expectedTrimsBySeries = {
+    A3L: ['35 TFSI 进取致雅型', '35 TFSI 时尚运动型', '35 TFSI 豪华运动型'],
+    A5L: ['运动版', '运动版 Plus', '运动版 quattro'],
+    A6L: ['40 TFSI 豪华动感型', '45 TFSI 尊享致雅型', '45 TFSI quattro 尊享动感型'],
+    Q5L: ['40 TFSI 时尚动感型', '40 TFSI 豪华动感型', '45 TFSI 臻选动感型'],
+    'Q6L e-tron': ['长续航版', '超长续航乾崑智驾版', 'quattro 乾崑智驾版'],
+  };
+
+  assert.equal(CAR_MODELS.length, 15);
+  expectedSeries.forEach(series => {
+    const seriesModels = CAR_MODELS.filter(model => model.series === series);
+    assert.equal(seriesModels.length, 3, `${series} should have three trims`);
+    assert.deepEqual(seriesModels.map(model => model.trim), expectedTrimsBySeries[series]);
+    seriesModels.forEach(model => {
+      assert.equal(typeof INITIAL_MARKET_PRICES[model.id], 'number');
+      assert.ok(INITIAL_MARKET_PRICES[model.id] < model.msrp);
+    });
+  });
+  assert.equal(CAR_MODELS.find(model => model.id === 'Q6_ETRON_M')?.segment, '新能源');
+});
+
+test('vehicle structure snapshot diagnoses series mix and showroom gaps', () => {
+  const a6 = CAR_MODELS.find(model => model.series === 'A6L');
+  const q5 = CAR_MODELS.find(model => model.series === 'Q5L');
+  const q6 = CAR_MODELS.find(model => model.series === 'Q6L e-tron');
+  const snapshot = buildVehicleStructureSnapshot({
+    inventory: [
+      { id: 'a6_1', modelId: a6.id, location: 'warehouse', stockDays: 8, costPrice: a6.baseCost },
+      { id: 'q5_1', modelId: q5.id, location: 'showroom', stockDays: 12, costPrice: q5.baseCost },
+      { id: 'q6_1', modelId: q6.id, location: 'warehouse', stockDays: 70, costPrice: q6.baseCost },
+    ],
+    pendingOrders: [],
+    soldVehicles: [{ id: 'sold_q5', modelId: q5.id }],
+    monthlyStats: { ...createInitialMonthlyStats(), target: 16, leads: 35 },
+    customerDeals: [{ id: 'young_1', status: 'pending', segment: '年轻', preferredSeries: ['A5L'] }],
+    salesOpportunities: [],
+    carModels: CAR_MODELS,
+    financeSnapshot: { cashCoverageDays: 9 },
+    activeRegion: { id: 'nev_hot', name: '新能源强势区' },
+    marketEnvironment: { competitorEvent: { affectedSegments: ['新能源'] } },
+    competitors: { stores: [{ brand: 'ev', isVisible: true }] },
+  });
+
+  assert.equal(snapshot.rows.find(row => row.series === 'Q5L').sales, 1);
+  assert.ok(snapshot.recommendations.some(item => item.id === 'young_series_shortage'));
+  assert.ok(snapshot.recommendations.some(item => item.id === 'ev_series_pressure'));
+  assert.ok(snapshot.recommendations.some(item => item.id === 'capital_heavy_mix'));
+});
+
+test('vehicle competitor mapping and showroom strategy create series-level effects', () => {
+  const q6 = CAR_MODELS.find(model => model.series === 'Q6L e-tron');
+  const a6 = CAR_MODELS.find(model => model.series === 'A6L');
+  const impact = getSeriesCompetitorImpact({
+    modelDef: q6,
+    marketEnvironment: { competitorEvent: { affectedSegments: ['新能源'], affectedSeries: ['Q6L e-tron'], demandImpact: -0.08, priceDrift: -0.02 } },
+    competitors: { priceWarActive: true, stores: [{ brand: 'ev', customerPull: 74, isVisible: true }] },
+  });
+  const a6Impact = getSeriesCompetitorImpact({
+    modelDef: a6,
+    marketEnvironment: { competitorEvent: { affectedSegments: ['新能源'], affectedSeries: ['Q6L e-tron'], demandImpact: -0.08, priceDrift: -0.02 } },
+    competitors: { priceWarActive: true, stores: [{ brand: 'ev', customerPull: 74, isVisible: true }] },
+  });
+  const showroom = buildShowroomStrategySnapshot({
+    inventory: [
+      { id: 'q6_show', modelId: q6.id, location: 'showroom' },
+      { id: 'a6_show', modelId: a6.id, location: 'showroom' },
+    ],
+    carModels: CAR_MODELS,
+  });
+
+  assert.ok(impact.rivalLabels.includes('Model Y'));
+  assert.ok(impact.demandImpact < a6Impact.demandImpact);
+  assert.ok(showroom.segmentBonus.新能源 > 0);
+  assert.ok(showroom.segmentBonus.商务 > 0);
+  assert.ok(showroom.competitorShield > 0);
+});
+
+test('onboarding training guides the first seven operating days', () => {
+  const firstDay = evaluateOnboardingTraining({
+    dayOfMonth: 1,
+    visitedTabs: ['dashboard'],
+    activity: {},
+  });
+  assert.equal(ONBOARDING_TRAINING_DAYS.length, 7);
+  assert.equal(firstDay.currentTrainingDay.id, 'day1_bi');
+  assert.equal(firstDay.nextStep.targetTab, 'bi');
+  assert.equal(firstDay.progress.totalDays, 7);
+
+  const lateWeek = evaluateOnboardingTraining({
+    dayOfMonth: 7,
+    visitedTabs: ['bi', 'order', 'showroom', 'marketing', 'opportunities', 'csi'],
+    activity: {
+      reviewedBusinessIntelligence: true,
+      hasPendingOrderOrInventory: true,
+      hasShowroomDisplay: true,
+      hasMarketingSpendOrLeads: true,
+      hasHandledDealFlow: true,
+      hasReviewedCsiOrManufacturer: true,
+    },
+  });
+  assert.equal(lateWeek.currentTrainingDay.id, 'day7_reports');
+  assert.equal(lateWeek.nextStep.targetTab, 'reports');
+  assert.equal(lateWeek.progress.unlockedCompletedDays, 6);
 });
 
 test('store overview view model summarizes core dealership zones', () => {
@@ -367,6 +562,80 @@ test('finance snapshot balances assets, liabilities, profit, and draft warnings'
   assert.equal(snapshot.ownerEquity, snapshot.balanceAssets - snapshot.balanceLiabilities);
 });
 
+test('business intelligence snapshot highlights sales and cash risks', () => {
+  const monthlyStats = {
+    ...createInitialMonthlyStats(),
+    target: 15,
+    sales: 2,
+    leads: 30,
+    walkIns: 12,
+    revenue: 800000,
+    cogs: 760000,
+    derivativeRevenue: 20000,
+    derivativeCost: 8000,
+    afterSalesRevenue: 10000,
+    usedCarRevenue: 0,
+  };
+  const finance = { ...createInitialFinance(), cash: 90000, loan: 9000000 };
+  const financeSnapshot = buildFinanceSnapshot({
+    monthlyStats,
+    drafts: createInitialDrafts(),
+    currentDay: 20,
+    currentMonth: 1,
+    dailyBurnEstimate: 15000,
+    dailyLedger: [],
+    inventory: [{ id: 'car1', modelId: CAR_MODELS[0].id, stockDays: 95 }],
+    carModels: CAR_MODELS,
+    virtualSales: {},
+    usedCars: [],
+    finance,
+    gmWealth: {},
+  });
+  const snapshot = buildBusinessIntelligenceSnapshot({
+    monthlyStats,
+    finance,
+    financeSnapshot,
+    inventory: [{ id: 'car1', modelId: CAR_MODELS[0].id, stockDays: 95 }],
+    csi: { score: 72, complaints: 1 },
+    dayOfMonth: 20,
+    manufacturerPolicy: {
+      ...createInitialManufacturerPolicy(),
+      purchaseTarget: { targetUnits: 10, purchasedUnits: 5, bonus: null },
+    },
+  });
+
+  assert.equal(snapshot.kpis.salesProgress > 0, true);
+  assert.equal(snapshot.riskItems.some(item => item.id === 'cash' && item.level === 'danger'), true);
+  assert.equal(snapshot.riskItems.some(item => item.id === 'inventory' && item.level === 'danger'), true);
+  assert.equal(snapshot.actions.some(item => item.tab === 'opportunities'), true);
+});
+
+test('operating review report builds quarterly challenge and practical findings', () => {
+  const report = buildOperatingReviewReport({
+    month: 1,
+    monthlyStats: { ...createInitialMonthlyStats(), target: 15, sales: 3, revenue: 600000, cogs: 650000 },
+    finance: { ...createInitialFinance(), cash: 120000, loan: 6000000, creditLimit: 8000000 },
+    financeSnapshot: { cashCoverageDays: 8, debtRatio: 0.75, netProfit: -220000 },
+    inventory: [{ id: 'aged1', stockDays: 92 }, { id: 'fresh1', stockDays: 12 }],
+    csi: { score: 78, complaints: 1 },
+    manufacturerPolicy: {
+      ...createInitialManufacturerPolicy(),
+      roles: {
+        hq: { relationship: 55 },
+        region: { relationship: 62 },
+      },
+    },
+    investorReview: { score: 58, monthNetProfit: -220000 },
+    feedback: { ratingHistory: [] },
+    formatMoney,
+  });
+
+  assert.equal(report.challenge.id, 'q1_cash_defense');
+  assert.ok(report.challenge.progress < 100);
+  assert.equal(report.findings.some(item => item.id === 'cash_pressure'), true);
+  assert.equal(report.nextActions.length > 0, true);
+});
+
 test('inventory operations clamp prices, move cars, arrange showroom, and subsidize aged stock', () => {
   const model = CAR_MODELS[0];
   const inventory = [
@@ -400,6 +669,17 @@ test('inventory operations clamp prices, move cars, arrange showroom, and subsid
   });
   assert.equal(arranged.status, 'arranged');
   assert.equal(arranged.inventory.filter(car => car.location === 'showroom').length, 2);
+
+  const strategy = applySeriesPriceStrategy({
+    series: 'A3L',
+    inventory,
+    carModels: CAR_MODELS,
+    marketPrices: { [model.id]: model.msrp * 0.94, [CAR_MODELS[1].id]: CAR_MODELS[1].msrp * 0.94 },
+    getDynamicMsrp: modelId => CAR_MODELS.find(item => item.id === modelId).msrp,
+  });
+  assert.equal(strategy.status, 'applied');
+  assert.equal(Object.keys(strategy.modelPriceOverrides).length, 3);
+  assert.ok(strategy.inventory.find(car => car.id === 'car1').price <= model.msrp);
 
   const subsidyPlan = prepareInventorySubsidy({
     modelId: model.id,
@@ -524,6 +804,17 @@ test('staff operations train, hire, and toggle retention', () => {
   assert.equal(retained.staff.sales.members[0].retained, true);
 });
 
+test('sales staff series specialties contribute targeted bonuses', () => {
+  const members = [
+    normalizeStaffMember('sales', { id: 's_business', nickname: '商务', skill: 70, traits: ['business_specialist'] }),
+    normalizeStaffMember('sales', { id: 's_ev', nickname: '新能源', skill: 68, traits: ['ev_product'] }),
+  ];
+
+  assert.ok(getSeriesTraitBonus({ type: 'sales', members, series: 'A6L' }) > 0);
+  assert.ok(getSeriesTraitBonus({ type: 'sales', members, series: 'Q6L e-tron' }) > 0);
+  assert.equal(getSeriesTraitBonus({ type: 'sales', members, series: 'Q5L' }), 0);
+});
+
 test('manufacturer purchase target tracks orders and rewards over-purchase', () => {
   const policy = {
     ...createInitialManufacturerPolicy(),
@@ -570,6 +861,103 @@ test('manufacturer purchase target tracks orders and rewards over-purchase', () 
   assert.equal(fulfilled.settled[0].achieved, true);
   assert.ok(fulfilled.manufacturerPolicy.rebateMultiplier > rolled.rebateMultiplier);
   assert.ok(fulfilled.manufacturerPolicy.roles.region.relationship > rolled.roles.region.relationship);
+});
+
+test('manufacturer purchase target tracks structure tasks by vehicle series', () => {
+  const a3 = CAR_MODELS.find(model => model.series === 'A3L');
+  const a6 = CAR_MODELS.find(model => model.series === 'A6L');
+  const q5 = CAR_MODELS.find(model => model.series === 'Q5L');
+  const q6 = CAR_MODELS.find(model => model.series === 'Q6L e-tron');
+  const policy = {
+    ...createInitialManufacturerPolicy(),
+    purchaseTarget: { month: 1, targetUnits: 8, purchasedUnits: 0, status: 'active', history: [] },
+  };
+  const tracked = [
+    [a3.id, 2],
+    [a6.id, 2],
+    [q5.id, 2],
+    [q6.id, 1],
+  ].reduce((nextPolicy, [modelId, quantity]) => recordPurchaseTargetOrder({
+    manufacturerPolicy: nextPolicy,
+    quantity,
+    modelId,
+    carModels: CAR_MODELS,
+  }), policy);
+  const structure = tracked.purchaseTarget.structure;
+
+  assert.equal(structure.items.find(item => item.series === 'A3L').purchasedUnits, 2);
+  assert.equal(structure.items.find(item => item.series === 'Q6L e-tron').purchasedUnits, 1);
+
+  const settled = settleMonthlyPurchaseTarget({
+    manufacturerPolicy: tracked,
+    finance: { ...createInitialFinance(), cash: 100000, creditLimit: 1000000 },
+    activeDifficulty: { id: 'standard' },
+    month: 1,
+    absoluteDay: 30,
+    formatMoney,
+    random: fixedRandom(0),
+  });
+
+  assert.equal(settled.manufacturerPolicy.purchaseTarget.structure.lastResult.achievedCount, 4);
+  assert.ok(settled.ledgerItems.some(item => item.label === '厂家结构任务奖励'));
+  assert.ok(settled.inboxItems.some(item => item.tags.includes('vehicle_structure')));
+});
+
+test('manufacturer interaction supports resource negotiation and headquarters audit', () => {
+  const policy = {
+    ...createInitialManufacturerPolicy(),
+    purchaseTarget: { month: 1, targetUnits: 10, purchasedUnits: 8, status: 'active', history: [] },
+  };
+  const snapshot = buildManufacturerInteractionSnapshot({
+    manufacturerPolicy: policy,
+    monthlyStats: { ...createInitialMonthlyStats(), sales: 3, target: 15 },
+    finance: createInitialFinance(),
+    inventory: [{ id: 'aged1', modelId: CAR_MODELS[0].id, stockDays: 110 }],
+    csi: { score: 72, complaints: 2 },
+    virtualSales: { virtualCars: [{ id: 'v1' }], suspicionLevel: 70 },
+    modelPriceOverrides: { [CAR_MODELS[0].id]: Math.round(CAR_MODELS[0].msrp * 0.86) },
+    carModels: CAR_MODELS,
+    dayOfMonth: 20,
+    month: 1,
+    activeDifficulty: { id: 'standard' },
+  });
+  assert.equal(snapshot.auditRisk.level, 'danger');
+  assert.equal(snapshot.resourceRequests.some(item => item.id === 'market_cofund' && item.available), true);
+
+  const negotiated = resolveManufacturerResourceRequest({
+    requestId: 'market_cofund',
+    manufacturerPolicy: policy,
+    finance: { ...createInitialFinance(), cash: 100000 },
+    monthlyStats: createInitialMonthlyStats(),
+    currentDay: 20,
+    month: 1,
+    dayOfMonth: 20,
+    activeDifficulty: { id: 'standard' },
+    formatMoney,
+  });
+  assert.equal(negotiated.status, 'resolved');
+  assert.equal(negotiated.finance.cash, 145000);
+  assert.equal(negotiated.manufacturerPolicy.interaction.resourceHistory.length, 1);
+
+  const audit = settleManufacturerComplianceAudit({
+    manufacturerPolicy: policy,
+    finance: { ...createInitialFinance(), cash: 500000 },
+    monthlyStats: createInitialMonthlyStats(),
+    inventory: [{ id: 'aged1', modelId: CAR_MODELS[0].id, stockDays: 120 }],
+    csi: { score: 70, complaints: 2 },
+    virtualSales: { virtualCars: [{ id: 'v1' }], suspicionLevel: 80 },
+    modelPriceOverrides: { [CAR_MODELS[0].id]: Math.round(CAR_MODELS[0].msrp * 0.84) },
+    carModels: CAR_MODELS,
+    activeDifficulty: { id: 'standard' },
+    month: 1,
+    absoluteDay: 30,
+    formatMoney,
+    random: fixedRandom(0),
+  });
+  assert.equal(audit.ledgerItems.length, 1);
+  assert.ok(audit.finance.cash < 500000);
+  assert.equal(audit.manufacturerPolicy.interaction.audit.history.length, 1);
+  assert.ok(audit.manufacturerPolicy.roles.hq.relationship < policy.roles.hq.relationship);
 });
 
 test('purchase order supports cash, loan, and draft settlement paths', () => {
@@ -649,6 +1037,9 @@ test('customer deal cases include playable profiles and resolve with them', () =
   assert.ok(dealCase.profile.objections.length >= 1);
   assert.ok(dealCase.profile.budgetCeiling >= dealCase.targetPrice);
   assert.ok(Number.isFinite(dealCase.profile.modeFit.balanced));
+  assert.ok(dealCase.preferredSeries.length >= 1);
+  assert.ok(dealCase.profile.sensitivity?.label);
+  assert.equal(Number.isFinite(dealCase.profile.seriesFit), true);
 
   const result = resolveCustomerDeal({
     item: dealCase,
@@ -672,6 +1063,7 @@ test('customer deal cases include playable profiles and resolve with them', () =
   assert.equal(result.status, 'sold');
   assert.equal(result.soldVehicles.length, 1);
   assert.ok(result.closeChance > 0);
+  assert.match(result.alert.message, /车型偏好/);
 });
 
 test('customer lifecycle stores deal outcomes and resolves follow ups', () => {

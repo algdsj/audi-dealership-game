@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { buildPlayingShellContext } from './app/buildPlayingShellContext.js';
 import { buildCompetitorVisibility } from './app/competitorVisibility.js';
 import { PlayingGameShell } from './app/PlayingGameShell.jsx';
@@ -23,6 +23,7 @@ import { useInboxController } from './app/useInboxController.js';
 import { useInventoryActions } from './app/useInventoryActions.js';
 import { useInventoryState } from './app/useInventoryState.js';
 import { useCompetitorIntelActions } from './app/useCompetitorIntelActions.js';
+import { useManufacturerInteractionActions } from './app/useManufacturerInteractionActions.js';
 import { useMarketingActions } from './app/useMarketingActions.js';
 import { useMarketState } from './app/useMarketState.js';
 import { useModalController } from './app/useModalController.js';
@@ -35,13 +36,16 @@ import { useRestartActions } from './app/useRestartActions.js';
 import { useSalesOpportunityActions } from './app/useSalesOpportunityActions.js';
 import { useSaveDataBridge } from './app/useSaveDataBridge.js';
 import { useSaveSlotController } from './app/useSaveSlotController.js';
+import { useSettingsController } from './app/useSettingsController.js';
 import { useStaffActions } from './app/useStaffActions.js';
 import { useStaffState } from './app/useStaffState.js';
 import { useStoryInboxActions } from './app/useStoryInboxActions.js';
 import { useUiState } from './app/useUiState.js';
 import { useUsedCarActions } from './app/useUsedCarActions.js';
 import { useUsedCarState } from './app/useUsedCarState.js';
+import { buildBusinessIntelligenceSnapshot } from './game/engine/businessIntelligence.js';
 import { addMonthsToGameDate } from './game/engine/gameDate.js';
+import { buildManufacturerInteractionSnapshot } from './game/engine/manufacturerNegotiation.js';
 import {
   createInitialStoryState,
   createInitialStaffStoryMemory,
@@ -137,6 +141,15 @@ export default function App() {
     showInboxModal,
     virtualPlan,
   } = useUiState();
+
+  useEffect(() => {
+    if (gameState !== 'playing' || !activeTab) return;
+    setTutorial(prev => {
+      const visitedTabs = Array.isArray(prev.visitedTabs) ? prev.visitedTabs : [];
+      if (visitedTabs.includes(activeTab)) return prev;
+      return { ...prev, visitedTabs: [...visitedTabs, activeTab].slice(-24) };
+    });
+  }, [activeTab, gameState, setTutorial]);
 
   const {
     carModels,
@@ -485,8 +498,44 @@ export default function App() {
     balanceLiabilities,
     ownerEquity,
   } = financeSnapshot;
+  const businessIntelligence = buildBusinessIntelligenceSnapshot({
+    monthlyStats,
+    finance,
+    financeSnapshot,
+    inventory,
+    pendingOrders,
+    usedCars,
+    csi,
+    customerLifecycle,
+    customerDeals,
+    salesOpportunities,
+    soldVehicles,
+    carModels,
+    manufacturerPolicy,
+    competitors,
+    marketEnvironment,
+    activeRegion,
+    feedback,
+    dayOfMonth,
+    month,
+  });
+  const manufacturerInteraction = buildManufacturerInteractionSnapshot({
+    manufacturerPolicy,
+    monthlyStats,
+    finance,
+    inventory,
+    csi,
+    virtualSales,
+    modelPriceOverrides,
+    carModels,
+    marketEnvironment,
+    dayOfMonth,
+    month,
+    activeDifficulty,
+  });
   const {
     handleApplySubsidy,
+    handleApplySeriesPriceStrategy,
     handleAutoShowroom,
     handleMoveCar,
     handlePriceBlur,
@@ -787,6 +836,30 @@ export default function App() {
     showAlert,
   });
   const {
+    handleManufacturerResourceRequest,
+  } = useManufacturerInteractionActions({
+    activeDifficulty,
+    addLog,
+    appendLedger,
+    carModels,
+    csi,
+    currentDay: day,
+    dayOfMonth,
+    finance,
+    formatMoney,
+    inventory,
+    manufacturerPolicy,
+    marketEnvironment,
+    modelPriceOverrides,
+    month,
+    monthlyStats,
+    setFinance,
+    setManufacturerPolicy,
+    setMonthlyStats,
+    showAlert,
+    virtualSales,
+  });
+  const {
     handleCsiCareAction,
     handleCsiFollowUpAction,
   } = useCsiActions({
@@ -937,6 +1010,15 @@ export default function App() {
     onReturnToSetup: () => setGameState('setup'),
   });
 
+  const settingsController = useSettingsController({
+    applySaveData,
+    buildSaveData,
+    getSaveSlots,
+    resetAfterLoadUi,
+    showAlert,
+    showConfirm,
+  });
+
   const { hiddenCompetitorCount, visibleCompetitorStores } = buildCompetitorVisibility(competitors);
   const {
     activeGroup,
@@ -957,6 +1039,7 @@ export default function App() {
     messageFeed,
     moduleGroups,
     normalizedMarketShare,
+    onboardingTraining,
     openTaskTarget,
     operatingRating,
     operatingScore,
@@ -1119,6 +1202,7 @@ export default function App() {
     closeModal,
     executeOrder,
     handleAdjustGmSalary,
+    handleApplySeriesPriceStrategy,
     handleAskAIConsultant,
     handleAutoShowroom,
     handleBuildShowroom,
@@ -1136,6 +1220,7 @@ export default function App() {
     handleHireTech,
     handleLoadFromSlot,
     handleManualRepayLoan,
+    handleManufacturerResourceRequest,
     handleMoveCar,
     handleNextDay,
     handlePersonalBailout,
@@ -1197,6 +1282,8 @@ export default function App() {
     balanceAssets,
     balanceLiabilities,
     briefingMetrics,
+    businessIntelligence,
+    manufacturerInteraction,
     cashCoverageDays,
     convertRateVal,
     currentEnding,
@@ -1228,6 +1315,7 @@ export default function App() {
     nearestDraft,
     netProfit,
     normalizedMarketShare,
+    onboardingTraining,
     openTaskTarget,
     operatingRating,
     operatingScore,
@@ -1247,7 +1335,9 @@ export default function App() {
     visibleMessageFeed,
     warningDrafts,
     },
-    ui: {},
+    ui: {
+      settings: settingsController,
+    },
   });
 
   return <PlayingGameShell context={shellContext} />;

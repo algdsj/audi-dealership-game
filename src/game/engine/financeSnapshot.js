@@ -19,9 +19,10 @@ export const buildFinanceSnapshot = ({
   const afterSalesProfit = (monthlyStats.afterSalesRevenue || 0) - (monthlyStats.afterSalesCost || 0);
   const financeIncome = monthlyStats.financeCommission || 0;
   const renewalIncome = monthlyStats.insuranceRenewalRevenue || 0;
+  const manufacturerSupportIncome = monthlyStats.manufacturerSupportIncome || 0;
   const usedCarProfit = (monthlyStats.usedCarRevenue || 0) - (monthlyStats.usedCarCost || 0);
-  const gp3 = gp2 + derivProfit + financeIncome + afterSalesProfit + renewalIncome + usedCarProfit;
-  const opex = (monthlyStats.rent || 0) + (monthlyStats.depreciation || 0) + (monthlyStats.labor || 0) + (monthlyStats.marketingCost || 0) + (monthlyStats.financeCost || 0) + (monthlyStats.storageCost || 0);
+  const gp3 = gp2 + derivProfit + financeIncome + afterSalesProfit + renewalIncome + usedCarProfit + manufacturerSupportIncome;
+  const opex = (monthlyStats.rent || 0) + (monthlyStats.depreciation || 0) + (monthlyStats.labor || 0) + (monthlyStats.marketingCost || 0) + (monthlyStats.financeCost || 0) + (monthlyStats.storageCost || 0) + (monthlyStats.manufacturerPenalty || 0);
   const netProfit = gp3 - opex;
 
   const activeDraftList = (drafts.activeDrafts || []).filter(d => d.status === 'active' || d.status === 'defaulted');
@@ -72,6 +73,7 @@ export const buildFinanceSnapshot = ({
     afterSalesProfit,
     financeIncome,
     renewalIncome,
+    manufacturerSupportIncome,
     usedCarProfit,
     gp3,
     opex,

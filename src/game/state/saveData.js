@@ -1,4 +1,5 @@
 import { DIFFICULTY_MODES, GAME_SCENARIOS } from '../config/scenarios.js';
+import { APP_VERSION_INFO } from '../config/appVersion.js';
 import { INITIAL_MARKET_PRICES } from '../config/vehicles.js';
 import { DEALER_REGIONS, MARKET_SIZE_OPTIONS } from '../config/market.js';
 import { STAFF_ROLE_META } from '../config/staff.js';
@@ -81,7 +82,7 @@ export const buildManualSaveData = ({
   staffStoryMemory,
   logs,
 }) => ({
-  version: 1,
+  version: APP_VERSION_INFO.saveSchemaVersion,
   savedAt,
   gameState: gameState === 'setup' ? 'playing' : gameState,
   day,
@@ -195,7 +196,12 @@ export const normalizeLoadedSaveData = (saveData) => {
     marketSizeId: marketSize.id,
     difficultyMode: DIFFICULTY_MODES.some(item => item.id === saveData.difficultyMode) ? saveData.difficultyMode : 'standard',
     scenarioId: GAME_SCENARIOS.some(item => item.id === saveData.scenarioId) ? saveData.scenarioId : 'survive6',
-    tutorial: { enabled: true, dismissed: false, ...(saveData.tutorial || {}) },
+    tutorial: {
+      enabled: true,
+      dismissed: false,
+      ...(saveData.tutorial || {}),
+      visitedTabs: Array.isArray(saveData.tutorial?.visitedTabs) ? saveData.tutorial.visitedTabs : [],
+    },
     endingSummary: saveData.endingSummary || null,
     investorRelations: {
       ...createInitialInvestorRelations(),

@@ -4,9 +4,11 @@ import {
   getLoadSlotEntries as buildLoadSlotEntries,
   getReadableSaveEntries as buildReadableSaveEntries,
   getSaveSlotLabel,
+  getSaveFromSlotId,
   isSaveLike,
   migrateLegacySingleSave,
   readSaveSlots,
+  deleteSaveFromSlotId,
   writeSaveSlots,
 } from '../game/state/saveSlots.js';
 
@@ -56,7 +58,7 @@ export function useSaveSlotController({
 
   const handleLoadFromSlot = (slotId) => {
     const allSlots = getSaveSlots();
-    const saveData = allSlots.slots[slotId];
+    const saveData = getSaveFromSlotId(allSlots, slotId);
     if (!isSaveLike(saveData)) return showAlert('读档失败', '该槽位无有效存档数据。');
     const slotName = getSaveSlotLabel(slotId, saveData, slotId === 'auto');
     showConfirm('确认读档', `是否加载存档「${slotName}」？\n存档时间：${saveData.savedAt}\n经营日：M${Math.floor((saveData.day - 1) / 30) + 1} D${((saveData.day - 1) % 30) + 1}\n\n⚠️ 当前进度将被覆盖！`, () => {
@@ -73,12 +75,11 @@ export function useSaveSlotController({
 
   const handleDeleteSlot = (slotId) => {
     const allSlots = getSaveSlots();
-    const saveData = allSlots.slots[slotId];
+    const saveData = getSaveFromSlotId(allSlots, slotId);
     if (!saveData) return;
     const slotName = getSaveSlotLabel(slotId, saveData, slotId === 'auto');
     showConfirm('确认删除', `是否删除存档「${slotName}」？\n\n⚠️ 删除后无法恢复！`, () => {
-      delete allSlots.slots[slotId];
-      try { writeSaveSlots(allSlots); } catch {}
+      try { writeSaveSlots(deleteSaveFromSlotId(allSlots, slotId)); } catch {}
     });
   };
 

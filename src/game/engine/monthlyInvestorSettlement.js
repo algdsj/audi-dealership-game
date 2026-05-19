@@ -16,6 +16,10 @@ export const settleMonthlyInvestorReview = ({
   companyDailyBurn,
   priceWarActive,
   finalPayout,
+  manufacturerPolicy = {},
+  feedback = {},
+  competitors = {},
+  csi = {},
   currentDay,
   absoluteDay,
   formatMoney,
@@ -76,6 +80,16 @@ export const settleMonthlyInvestorReview = ({
     settlementLoan: nextFinance.loan,
     settlementCreditLimit: nextFinance.creditLimit,
     stockList,
+    finance: nextFinance,
+    financeSnapshot: {
+      cashCoverageDays: Math.floor((nextFinance.cash || 0) / Math.max(1, companyDailyBurn || 1)),
+      debtRatio: nextFinance.creditLimit > 0 ? (nextFinance.loan || 0) / nextFinance.creditLimit : 1,
+      netProfit: investorReview.monthNetProfit,
+    },
+    csi,
+    manufacturerPolicy,
+    feedback,
+    competitors,
     formatMoney,
   });
 
